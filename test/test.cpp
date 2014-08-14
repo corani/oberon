@@ -4,6 +4,11 @@
 
 using namespace std;
 
+ostream &operator<<(ostream &out, Location loc) {
+    out << "@(line: " << loc.line << ", column: " << loc.column << ")";
+    return out;
+}
+
 int main(void) {
     ifstream f("test.obr", ifstream::in);
     if (f.is_open()) {
@@ -13,61 +18,61 @@ int main(void) {
         while ((t = l.nextToken()).getKind() != Token::END_OF_FILE) {
             switch(t.getKind()) {
             case Token::STRLITERAL:
-                cout << "STR: " << t.getText() << endl;
+                cout << "STR: " << t.getText();
                 break;
             case Token::INTLITERAL:
-                cout << "INT: " << t.getIntVal() << endl;
+                cout << "INT: " << t.getIntVal();
                 break;
             case Token::FLOATLITERAL:
-                cout << "FLOAT: " << t.getFloatVal() << endl;
+                cout << "FLOAT: " << t.getFloatVal();
                 break;
             case Token::IDENTIFIER:
-                cout << "IDENTIFIER: " << t.getText() << endl;
+                cout << "IDENTIFIER: " << t.getText();
                 break;
             case Token::OPERATOR:
-                cout << "OPERATOR: " << t.getText() << endl;
+                cout << "OPERATOR: " << t.getText();
                 break;
             case Token::RELATION:
-                cout << "RELATION: " << t.getText() << endl;
+                cout << "RELATION: " << t.getText();
                 break;
             case Token::SEMICOLON:
-                cout << "SEMICOLON" << endl;
+                cout << "SEMICOLON";
                 break;
             case Token::ASSIGNMENT:
-                cout << "ASSIGNMENT" << endl;
+                cout << "ASSIGNMENT";
                 break;
             case Token::COLON:
-                cout << "COLON" << endl;
+                cout << "COLON";
                 break;
             case Token::DOT:
-                cout << "DOT" << endl;
+                cout << "DOT";
                 break;
             case Token::RANGE:
-                cout << "RANGE" << endl;
+                cout << "RANGE";
                 break;
             case Token::LPAREN:
-                cout << "LPAREN" << endl;
+                cout << "LPAREN";
                 break;
             case Token::RPAREN:
-                cout << "RPAREN" << endl;
+                cout << "RPAREN";
                 break;
             case Token::LCURLY:
-                cout << "LCURLY" << endl;
+                cout << "LCURLY";
                 break;
             case Token::RCURLY:
-                cout << "RCURLY" << endl;
+                cout << "RCURLY";
                 break;
             case Token::LSQUARE:
-                cout << "LSQUARE" << endl;
+                cout << "LSQUARE";
                 break;
             case Token::RSQUARE:
-                cout << "RSQUARE" << endl;
+                cout << "RSQUARE";
                 break;
             case Token::PIPE:
-                cout << "PIPE" << endl;
+                cout << "PIPE";
                 break;
             case Token::CARET:
-                cout << "CARET" << endl;
+                cout << "CARET";
                 break;
             case Token::MODULE:
             case Token::IMPORT:
@@ -98,11 +103,12 @@ int main(void) {
             case Token::FOR:
             case Token::BY:
             case Token::LOOP:
-                cout << t.getText() << endl;
+                cout << t.getText();
                 break;
             default:
-                cout << "OTHER: " << t.getText() << endl;
+                cout << "OTHER: " << t.getText();
             }
+            cout << "\t" << t.getLocation() << endl;
         }
 
         f.close();
