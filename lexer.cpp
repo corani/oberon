@@ -9,6 +9,7 @@ map<string, Token::Kind> str_to_tok = {
     {"IMPORT",      Token::IMPORT},
     {"BEGIN",       Token::BEGIN},
     {"END",         Token::END},
+    {"EXTERN",      Token::EXTERN},
     {"PROCEDURE",   Token::PROCEDURE},
     {"EXIT",        Token::EXIT},
     {"RETURN",      Token::RETURN},

@@ -73,6 +73,7 @@ int main(void) {
             case Token::IMPORT:
             case Token::BEGIN:
             case Token::END:
+            case Token::EXTERN:
             case Token::PROCEDURE:
             case Token::EXIT:
             case Token::RETURN:
