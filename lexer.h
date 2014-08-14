@@ -39,10 +39,14 @@ private:
     double floatval;
 };
 
+std::string kind_to_string(Token::Kind kind);
+
 class Lexer {
 public:
     Lexer(std::istream *in)
-        : in(in), loc{0, 0} {}
+            : in(in), loc{0, 0} {
+        nextToken();
+    }
     Token nextToken(void);
 private:
     void take(void);

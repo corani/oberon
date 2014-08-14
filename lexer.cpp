@@ -36,6 +36,15 @@ map<string, Token::Kind> str_to_tok = {
     {"LOOP",        Token::LOOP}
 };
 
+string kind_to_string(Token::Kind kind) {
+    for (auto &entry : str_to_tok) {
+        if (entry.second == kind) {
+            return entry.first;
+        }
+    }
+    return "OTHER";
+}
+
 Token::Token(Kind _kind, Location _loc, string _text) : kind(_kind), loc(_loc), text(_text) {
     if (_kind == IDENTIFIER) {
         // uppercase each character in-place

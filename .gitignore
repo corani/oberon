@@ -2,5 +2,7 @@
 *.bc
 *.ll
 *.swp
-test
+test/test_lexer
+test/test_parser
+test/core
 obr
