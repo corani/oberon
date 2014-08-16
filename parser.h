@@ -1,11 +1,14 @@
 #pragma once
 
 #include <string>
+#include <map>
 #include <vector>
 #include <memory>
 #include <exception>
 #include "lexer.h"
 #include "ast.h"
+
+using std::shared_ptr;
 
 class ParserException : public std::exception {
 public:
@@ -18,25 +21,39 @@ private:
 
 class Parser {
 public:
-    Parser() : lexer(nullptr) {}
-    std::shared_ptr<ModuleAST> parseModule(std::shared_ptr<Lexer> lexer);
+    Parser();
+    shared_ptr<ModuleAST> parseModule(shared_ptr<Lexer> lexer);
 private:
-    Token accept();
-    Token accept(Token::Kind kind);
-    Token accept(std::vector<Token::Kind> kinds);
+    shared_ptr<Token> accept();
+    shared_ptr<Token> accept(Token::Kind kind);
+    shared_ptr<Token> accept(std::vector<Token::Kind> kinds);
 
-    Token expect();
-    Token expect(Token::Kind kind);
-    Token expect(std::vector<Token::Kind> kinds);
+    shared_ptr<Token> expect();
+    shared_ptr<Token> expect(Token::Kind kind);
+    shared_ptr<Token> expect(std::vector<Token::Kind> kinds);
 
     void parseImport();
     void parseTypeDecl();
     void parseConstDecl();
     void parseVarDecl();
+    void parseExternDecl();
     void parseForwardDecl();
     void parseProcDecl();
     void parseStatementSeq();
+    void parseCase();
+    void parseReceiver();
+    void parseFormalParams();
+    void parseType();
+    shared_ptr<ExprAST> parseConstExpr();
+    shared_ptr<ExprAST> parseExpr();
+    shared_ptr<ExprAST> parseUnaryExpr();
+    shared_ptr<ExprAST> parseBinOpRHS(shared_ptr<ExprAST> LHS, int prec);
+    shared_ptr<FactorAST> parseFactor();
+    void parseDesignator();
+
+    int getPrecedence(shared_ptr<Token> op);
 private:
     std::shared_ptr<Lexer> lexer;
-    Token currentToken;
+    std::shared_ptr<Token> currentToken;
+    std::map<std::string, int> precedence;
 };

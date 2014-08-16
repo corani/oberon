@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <string>
+#include <memory>
 
 struct Location {
     unsigned int line, column;
@@ -10,12 +11,12 @@ struct Location {
 class Token {
 public:
     enum Kind {
-        INTLITERAL, FLOATLITERAL, STRLITERAL, CHARLITERAL, IDENTIFIER, RELATION, OPERATOR,
+        INTLITERAL, FLOATLITERAL, STRLITERAL, CHARLITERAL, NIL, IDENTIFIER, RELATION, OPERATOR,
         MODULE, IMPORT, BEGIN, END, EXTERN, PROCEDURE, EXIT, RETURN, VAR, CONST, TYPE,
         ARRAY, RECORD, POINTER, OF, TO,
         IF, THEN, ELSIF, ELSE, CASE, WITH, 
         REPEAT, UNTIL, WHILE, DO, FOR, BY, LOOP,
-        DOT, RANGE, COMMA, COLON, SEMICOLON, ASSIGNMENT, PIPE, CARET,
+        DOT, RANGE, COMMA, COLON, SEMICOLON, ASSIGNMENT, PIPE, CARET, TILDE,
         LPAREN, RPAREN, LCURLY, RCURLY, LSQUARE, RSQUARE,
         END_OF_FILE, OTHER
     };
@@ -47,7 +48,7 @@ public:
             : in(in), loc{0, 0} {
         nextToken();
     }
-    Token nextToken(void);
+    std::shared_ptr<Token> nextToken(void);
 private:
     void take(void);
 

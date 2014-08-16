@@ -2,6 +2,9 @@ MODULE Hello;
 (* Hello World! *)
 VAR input : INTEGER;
 
+EXTERN INC(x: INTEGER)
+EXTERN DEC(x: INTEGER)
+
 PROCEDURE log2(x: INTEGER): INTEGER;
 VAR y: INTEGER; (* assume x > 0 *)
 BEGIN y := 0;

@@ -16,6 +16,7 @@ map<string, Token::Kind> str_to_tok = {
     {"VAR",         Token::VAR},
     {"CONST",       Token::CONST},
     {"TYPE",        Token::TYPE},
+    {"NIL",         Token::NIL},
     {"ARRAY",       Token::ARRAY},
     {"RECORD",      Token::RECORD},
     {"POINTER",     Token::POINTER},
@@ -36,13 +37,38 @@ map<string, Token::Kind> str_to_tok = {
     {"LOOP",        Token::LOOP}
 };
 
+map<Token::Kind, string> tok_to_str = {
+    {Token::INTLITERAL,     "INTLITERAL"},
+    {Token::FLOATLITERAL,   "FLOATLITERAL"},
+    {Token::STRLITERAL,     "STRLITERAL"},
+    {Token::CHARLITERAL,    "CHARLITERAL"},
+    {Token::IDENTIFIER,     "IDENTIFIER"},
+    {Token::RELATION,       "RELATION"},
+    {Token::OPERATOR,       "OPERATOR"},
+    {Token::DOT,            "DOT"},
+    {Token::RANGE,          "RANGE"},
+    {Token::COMMA,          "COMMA"},
+    {Token::COLON,          "COLON"},
+    {Token::SEMICOLON,      "SEMICOLON"},
+    {Token::ASSIGNMENT,     "ASSIGNMENT"},
+    {Token::PIPE,           "PIPE"},
+    {Token::CARET,          "CARET"},
+    {Token::LPAREN,         "LPAREN"},
+    {Token::RPAREN,         "RPAREN"},
+    {Token::LCURLY,         "LCURLY"},
+    {Token::RCURLY,         "RCURLY"},
+    {Token::LSQUARE,        "LSQUARE"},
+    {Token::RSQUARE,        "RSQUARE"},
+    {Token::END_OF_FILE,    "END_OF_FILE"}
+};
+
 string kind_to_string(Token::Kind kind) {
     for (auto &entry : str_to_tok) {
         if (entry.second == kind) {
             return entry.first;
         }
     }
-    return "OTHER";
+    return tok_to_str[kind];
 }
 
 Token::Token(Kind _kind, Location _loc, string _text) : kind(_kind), loc(_loc), text(_text) {
@@ -51,9 +77,13 @@ Token::Token(Kind _kind, Location _loc, string _text) : kind(_kind), loc(_loc), 
         for (auto &c : _text) {
             c = toupper(c);
         }
-        if (auto nk = str_to_tok[_text]) {
-            kind = nk;
-        } else if (_text == "OR" || _text == "DIV" || _text == "MOD") {
+        for (auto &entry : str_to_tok) {
+            if (entry.first == _text) {
+                kind = entry.second;
+                return;
+            }
+        }
+        if (_text == "OR" || _text == "DIV" || _text == "MOD") {
             kind = OPERATOR;
             text = _text;
         } else if (_text == "IN" || _text == "IS") {
@@ -100,13 +130,13 @@ static bool isrelation(char c) {
     }
 }
 
-Token Lexer::nextToken() {
+shared_ptr<Token> Lexer::nextToken() {
     while (isspace(lastChar)) {
         take();
     }
 
     if (lastChar == EOF) {
-        return Token(Token::END_OF_FILE, loc);
+        return make_shared<Token>(Token::END_OF_FILE, loc);
     }
 
     if (isalpha(lastChar)) {
@@ -115,7 +145,7 @@ Token Lexer::nextToken() {
             text.push_back(lastChar);
             take();
         } while (isalnum(lastChar));
-        return Token(Token::IDENTIFIER, loc, text);
+        return make_shared<Token>(Token::IDENTIFIER, loc, text);
     } else if (isdigit(lastChar)) {
         string numStr;
         bool hasDot;
@@ -125,9 +155,9 @@ Token Lexer::nextToken() {
             take();
         } while (isdigit(lastChar) || (lastChar == '.' && !hasDot));
         if (hasDot) {
-            return Token(Token::FLOATLITERAL, loc, atof(numStr.c_str()));
+            return make_shared<Token>(Token::FLOATLITERAL, loc, stof(numStr.c_str()));
         } else {
-            return Token(Token::INTLITERAL, loc, atoi(numStr.c_str()));
+            return make_shared<Token>(Token::INTLITERAL, loc, stoi(numStr.c_str()));
         }
     } else if (isoper(lastChar)) {
         string opStr;
@@ -135,32 +165,35 @@ Token Lexer::nextToken() {
             opStr.push_back(lastChar);
             take();
         } while (isoper(lastChar));
-        return Token(Token::OPERATOR, loc, opStr);
+        return make_shared<Token>(Token::OPERATOR, loc, opStr);
     } else if (isrelation(lastChar)) {
         string relStr;
         do {
             relStr.push_back(lastChar);
             take();
         } while (isrelation(lastChar));
-        return Token(Token::RELATION, loc, relStr);
+        return make_shared<Token>(Token::RELATION, loc, relStr);
     } else {
         switch (lastChar) {
+            case '~':
+                take();
+                return make_shared<Token>(Token::TILDE, loc);
             case '^':
                 take();
-                return Token(Token::CARET, loc);
+                return make_shared<Token>(Token::CARET, loc);
             case '|':
                 take();
-                return Token(Token::PIPE, loc);
+                return make_shared<Token>(Token::PIPE, loc);
             case ';':
                 take();
-                return Token(Token::SEMICOLON, loc);
+                return make_shared<Token>(Token::SEMICOLON, loc);
             case ':':
                 take();
                 if (lastChar == '=') {
                     take();
-                    return Token(Token::ASSIGNMENT, loc);
+                    return make_shared<Token>(Token::ASSIGNMENT, loc);
                 } else {
-                    return Token(Token::COLON, loc);
+                    return make_shared<Token>(Token::COLON, loc);
                 }
             case '"': {
                 take(); // open "
@@ -170,7 +203,7 @@ Token Lexer::nextToken() {
                     take();
                 }
                 take(); // close "
-                return Token(Token::STRLITERAL, loc, str);
+                return make_shared<Token>(Token::STRLITERAL, loc, str);
             }
             case '(': {
                 take(); // open (
@@ -190,36 +223,36 @@ Token Lexer::nextToken() {
                     take();
                     return nextToken();
                 } else {
-                    return Token(Token::LPAREN, loc);
+                    return make_shared<Token>(Token::LPAREN, loc);
                 }
             }
             case ')':
                 take();
-                return Token(Token::RPAREN, loc);
+                return make_shared<Token>(Token::RPAREN, loc);
             case '{':
                 take();
-                return Token(Token::LCURLY, loc);
+                return make_shared<Token>(Token::LCURLY, loc);
             case '}':
                 take();
-                return Token(Token::RCURLY, loc);
+                return make_shared<Token>(Token::RCURLY, loc);
             case '[':
                 take();
-                return Token(Token::LSQUARE, loc);
+                return make_shared<Token>(Token::LSQUARE, loc);
             case ']':
                 take();
-                return Token(Token::RSQUARE, loc);
+                return make_shared<Token>(Token::RSQUARE, loc);
             case '.':
                 take();
                 if (lastChar == '.') {
                     take();
-                    return Token(Token::RANGE, loc);
+                    return make_shared<Token>(Token::RANGE, loc);
                 } else {
-                    return Token(Token::DOT, loc);
+                    return make_shared<Token>(Token::DOT, loc);
                 }
             default:
                 take();
         }
     }
 
-    return Token(Token::OTHER, loc);
+    return make_shared<Token>(Token::OTHER, loc);
 }

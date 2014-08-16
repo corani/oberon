@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <memory>
 #include "lexer.h"
 
 using namespace std;
@@ -14,26 +15,26 @@ int main(void) {
     if (f.is_open()) {
         Lexer l(&f);
 
-        Token t;
-        while ((t = l.nextToken()).getKind() != Token::END_OF_FILE) {
-            switch(t.getKind()) {
+        shared_ptr<Token> t;
+        while ((t = l.nextToken())->getKind() != Token::END_OF_FILE) {
+            switch(t->getKind()) {
             case Token::STRLITERAL:
-                cout << "STR: " << t.getText();
+                cout << "STR: " << t->getText();
                 break;
             case Token::INTLITERAL:
-                cout << "INT: " << t.getIntVal();
+                cout << "INT: " << t->getIntVal();
                 break;
             case Token::FLOATLITERAL:
-                cout << "FLOAT: " << t.getFloatVal();
+                cout << "FLOAT: " << t->getFloatVal();
                 break;
             case Token::IDENTIFIER:
-                cout << "IDENTIFIER: " << t.getText();
+                cout << "IDENTIFIER: " << t->getText();
                 break;
             case Token::OPERATOR:
-                cout << "OPERATOR: " << t.getText();
+                cout << "OPERATOR: " << t->getText();
                 break;
             case Token::RELATION:
-                cout << "RELATION: " << t.getText();
+                cout << "RELATION: " << t->getText();
                 break;
             case Token::SEMICOLON:
                 cout << "SEMICOLON";
@@ -103,12 +104,12 @@ int main(void) {
             case Token::FOR:
             case Token::BY:
             case Token::LOOP:
-                cout << t.getText();
+                cout << t->getText();
                 break;
             default:
-                cout << "OTHER: " << t.getText();
+                cout << "OTHER: " << t->getText();
             }
-            cout << "\t" << t.getLocation() << endl;
+            cout << "\t" << t->getLocation() << endl;
         }
 
         f.close();
