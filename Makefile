@@ -9,6 +9,9 @@ test_lexer: test/test_lexer.cpp lexer.o
 obc: obc.cpp lexer.o context.o ast.o parser.o
 	clang++ -rdynamic -ggdb -O3 --std=c++11 -o obc obc.cpp lexer.o context.o ast.o parser.o `llvm-config --cppflags --ldflags --libs core jit native bitwriter` -lboost_program_options
 
+native.bc: native.cpp
+	clang++ --std=c++11 -emit-llvm -c native.cpp -o native.bc
+
 parser.o: parser.cpp parser.h lexer.h ast.h
 	clang++ -ggdb --std=c++11 -c parser.cpp -o parser.o
 

@@ -11,7 +11,8 @@ struct Location {
 class Token {
 public:
     enum Kind {
-        INTLITERAL, FLOATLITERAL, STRLITERAL, CHARLITERAL, NIL, IDENTIFIER, RELATION, OPERATOR,
+        BOOLLITERAL, INTLITERAL, FLOATLITERAL, STRLITERAL, CHARLITERAL, NIL,
+        IDENTIFIER, RELATION, OPERATOR,
         MODULE, IMPORT, BEGIN, END, EXTERN, PROCEDURE, EXIT, RETURN, VAR, CONST, TYPE,
         ARRAY, RECORD, POINTER, OF, TO,
         IF, THEN, ELSIF, ELSE, CASE, WITH, 
@@ -23,6 +24,8 @@ public:
 
     Token() : kind(END_OF_FILE), loc{0, 0}, text("") {}
     Token(Kind kind, Location loc) : kind(kind), loc(loc), text("") {}
+    Token(Kind kind, Location loc, char charval) : kind(kind), loc(loc), text(""), charval(charval) {}
+
     Token(Kind kind, Location loc, int intval) : kind(kind), loc(loc), text(""), intval(intval) {}
     Token(Kind kind, Location loc, double floatval) : kind(kind), loc(loc), text(""), floatval(floatval) {}
     Token(Kind kind, Location loc, std::string text);
@@ -30,14 +33,18 @@ public:
     Kind getKind() const         { return kind; }
     Location getLocation() const { return loc; }
     std::string getText() const  { return text; }
+    char getCharVal() const      { return charval; }
     int getIntVal() const        { return intval; }
     double getFloatVal() const   { return floatval; }
+    bool getBoolVal() const      { return boolval; }
 private:
     Kind kind;
     Location loc;
     std::string text;
+    char charval;
     int intval;
     double floatval;
+    bool boolval;
 };
 
 std::string kind_to_string(Token::Kind kind);

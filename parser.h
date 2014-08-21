@@ -9,6 +9,9 @@
 #include "ast.h"
 
 using std::shared_ptr;
+using std::vector;
+using std::pair;
+using std::string;
 
 class ParserException : public std::exception {
 public:
@@ -32,15 +35,15 @@ private:
     shared_ptr<Token> expect(Token::Kind kind);
     shared_ptr<Token> expect(std::vector<Token::Kind> kinds);
 
-    void parseImport();
-    void parseTypeDecl();
-    void parseConstDecl();
-    void parseVarDecl();
-    void parseExternDecl();
-    void parseForwardDecl();
-    void parseProcDecl();
-    void parseStatementSeq();
-    void parseCase();
+    void parseImport(vector<pair<string, string>> &imports);
+    void parseTypeDecl   (vector<shared_ptr<DeclAST>> &decls);
+    void parseConstDecl  (vector<shared_ptr<DeclAST>> &decls);
+    void parseVarDecl    (vector<shared_ptr<DeclAST>> &decls);
+    void parseExternDecl (vector<shared_ptr<DeclAST>> &decls);
+    void parseForwardDecl(vector<shared_ptr<DeclAST>> &decls);
+    void parseProcDecl   (vector<shared_ptr<DeclAST>> &decls);
+    void parseStatementSeq(vector<shared_ptr<StatementAST>> &stmts);
+    void parseCase(vector<shared_ptr<CaseClauseAST>> &clauses);
     void parseReceiver();
     void parseFormalParams();
     void parseType();
@@ -48,8 +51,9 @@ private:
     shared_ptr<ExprAST> parseExpr();
     shared_ptr<ExprAST> parseUnaryExpr();
     shared_ptr<ExprAST> parseBinOpRHS(shared_ptr<ExprAST> LHS, int prec);
-    shared_ptr<FactorAST> parseFactor();
-    void parseDesignator();
+    shared_ptr<ExprAST> parseFactor();
+    shared_ptr<DesignatorAST> parseDesignator();
+    shared_ptr<IdentDefAST> parseIdentDef();
 
     int getPrecedence(shared_ptr<Token> op);
 private:

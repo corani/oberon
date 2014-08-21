@@ -1,4 +1,6 @@
 MODULE Hello;
+IMPORT System, S := Something;
+
 (* Hello World! *)
 VAR input : INTEGER;
 

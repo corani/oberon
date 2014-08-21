@@ -89,6 +89,12 @@ Token::Token(Kind _kind, Location _loc, string _text) : kind(_kind), loc(_loc), 
         } else if (_text == "IN" || _text == "IS") {
             kind = RELATION;
             text = _text;
+        } else if (_text == "FALSE") {
+            kind = BOOLLITERAL;
+            boolval = false;
+        } else if (_text == "TRUE") {
+            kind = BOOLLITERAL;
+            boolval = true;
         }
     }
 }
@@ -175,6 +181,9 @@ shared_ptr<Token> Lexer::nextToken() {
         return make_shared<Token>(Token::RELATION, loc, relStr);
     } else {
         switch (lastChar) {
+            case ',':
+                take();
+                return make_shared<Token>(Token::COMMA, loc);
             case '~':
                 take();
                 return make_shared<Token>(Token::TILDE, loc);
@@ -203,7 +212,11 @@ shared_ptr<Token> Lexer::nextToken() {
                     take();
                 }
                 take(); // close "
-                return make_shared<Token>(Token::STRLITERAL, loc, str);
+                if (str.length() == 1) {
+                    return make_shared<Token>(Token::CHARLITERAL, loc, str[0]);
+                } else {
+                    return make_shared<Token>(Token::STRLITERAL, loc, str);
+                }
             }
             case '(': {
                 take(); // open (
