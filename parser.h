@@ -40,13 +40,13 @@ private:
     void parseConstDecl  (vector<shared_ptr<DeclAST>> &decls);
     void parseVarDecl    (vector<shared_ptr<DeclAST>> &decls);
     void parseExternDecl (vector<shared_ptr<DeclAST>> &decls);
-    void parseForwardDecl(vector<shared_ptr<DeclAST>> &decls);
+    void parseForwardDecl(shared_ptr<Token> start, vector<shared_ptr<DeclAST>> &decls);
     void parseProcDecl   (vector<shared_ptr<DeclAST>> &decls);
     void parseStatementSeq(vector<shared_ptr<StatementAST>> &stmts);
     void parseCase(vector<shared_ptr<CaseClauseAST>> &clauses);
-    void parseReceiver();
+    shared_ptr<ReceiverAST> parseReceiver();
     void parseFormalParams();
-    void parseType();
+    shared_ptr<TypeAST> parseType();
     shared_ptr<ExprAST> parseConstExpr();
     shared_ptr<ExprAST> parseExpr();
     shared_ptr<ExprAST> parseUnaryExpr();

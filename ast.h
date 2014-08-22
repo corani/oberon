@@ -6,6 +6,8 @@
 #include <string>
 #include <iostream>
 
+#include "lexer.h"
+
 using std::shared_ptr;
 using std::vector;
 using std::pair;
@@ -20,11 +22,14 @@ enum class Export {
 class BaseAST {
 public:
     virtual void print(ostream &out, string pre = "") const {};
+public:
+    shared_ptr<Token> start, end;
 };
 
 class StatementAST;
 class DeclAST;
 class IdentDefAST;
+class TypeAST;
 
 class ModuleAST : public BaseAST {
 public:
@@ -70,6 +75,14 @@ public:
 class TypeDeclAST : public DeclAST {
 public:
     virtual void print(ostream &out, string pre = "") const;
+public:
+    shared_ptr<IdentDefAST> ident;
+    shared_ptr<TypeAST> type;
+};
+
+class TypeAST : public BaseAST {
+public:
+    virtual void print(ostream &out, string pre = "") const;
 };
 
 class VarDeclAST : public DeclAST {
@@ -82,7 +95,17 @@ public:
     virtual void print(ostream &out, string pre = "") const;
 };
 
+class ReceiverAST : public BaseAST {
+public:
+    virtual void print(ostream &out, string pre = "") const;
+public:
+    string name, type;
+    bool isVar;
+};
+
 class ExprAST : public BaseAST {
+public:
+    bool isConst;
 };
 
 class LiteralExprAST : public ExprAST {
@@ -90,50 +113,54 @@ class LiteralExprAST : public ExprAST {
 
 class BoolLiteralAST : public LiteralExprAST {
 public:
-    BoolLiteralAST(bool value) : value(value) {}
-    bool getValue() const { return value; }
-private:
+    BoolLiteralAST(bool value) : value(value) { isConst = true; }
+    virtual void print(ostream &out, string pre = "") const;
+public:
     bool value;
 };
 
 class IntLiteralAST : public LiteralExprAST {
 public:
-    IntLiteralAST(int value) : value(value) {}
-    int getValue() const { return value; }
-private:
+    IntLiteralAST(int value) : value(value) { isConst = true; }
+    virtual void print(ostream &out, string pre = "") const;
+public:
     int value;
 };
 
 class FloatLiteralAST : public LiteralExprAST {
 public:
-    FloatLiteralAST(double value) : value(value) {}
-    double getValue() const { return value; }
-private:
+    FloatLiteralAST(double value) : value(value) { isConst = true; }
+    virtual void print(ostream &out, string pre = "") const;
+public:
     double value;
 };
 
 class StrLiteralAST : public LiteralExprAST {
 public:
-    StrLiteralAST(std::string value) : value(value) {}
-    std::string getValue() const { return value; }
-private:
+    StrLiteralAST(std::string value) : value(value) { isConst = true; }
+    virtual void print(ostream &out, string pre = "") const;
+public:
     std::string value;
 };
 
 class CharLiteralAST : public LiteralExprAST {
 public:
-    CharLiteralAST(char value) : value(value) {}
-    char getValue() const { return value; }
-private:
+    CharLiteralAST(char value) : value(value) { isConst = true; }
+    virtual void print(ostream &out, string pre = "") const;
+public:
     char value;
 };
 
 class NilLiteralAST : public LiteralExprAST {
+public:
+    NilLiteralAST() { isConst = true; }
+    virtual void print(ostream &out, string pre = "") const;
 };
 
 class IdentDefAST : public ExprAST {
 public:
     IdentDefAST(string name, Export export_ = Export::NO) : name(name), export_(export_) {}
+    virtual void print(ostream &out, string pre = "") const;
 public:
     string name;
     Export export_;
@@ -142,6 +169,7 @@ public:
 class DesignatorAST : public ExprAST {
 public:
     DesignatorAST(string name) : name(name) {}
+    virtual void print(ostream &out, string pre = "") const;
 public:
     string name;
 };
@@ -150,7 +178,8 @@ class UnExprAST : public ExprAST {
 public:
     UnExprAST(std::string op, shared_ptr<ExprAST> operand)
             : op(op), operand(operand) {}
-private:
+    virtual void print(ostream &out, string pre = "") const;
+public:
     std::string op;
     shared_ptr<ExprAST> operand;
 };
@@ -159,12 +188,21 @@ class BinExprAST : public ExprAST {
 public:
     BinExprAST(std::string op, shared_ptr<ExprAST> LHS, shared_ptr<ExprAST> RHS)
             : op(op), lhs(LHS), rhs(RHS) {}
-private:
+    virtual void print(ostream &out, string pre = "") const;
+public:
     std::string op;
     shared_ptr<ExprAST> lhs, rhs;
 };
 
 class FactorAST : public ExprAST {
+};
+
+class IdentifierAST : public ExprAST {
+public:
+    IdentifierAST(shared_ptr<DesignatorAST> des) : des(des) {}
+    virtual void print(ostream &out, string pre = "") const;
+public:
+    shared_ptr<DesignatorAST> des;
 };
 
 class StatementAST : public BaseAST {
@@ -282,4 +320,12 @@ public:
 public:
     shared_ptr<DesignatorAST> des;
     vector<shared_ptr<ExprAST>> args;
+};
+
+class CallExprAST : public ExprAST {
+public:
+    CallExprAST(shared_ptr<CallStatementAST> call) : call(call) {}
+    virtual void print(ostream &out, string pre = "") const;
+public:
+    shared_ptr<CallStatementAST> call;
 };

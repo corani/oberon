@@ -70,7 +70,7 @@ shared_ptr<ModuleAST> Parser::parseModule(shared_ptr<Lexer> _lexer) {
     lexer = _lexer;
     accept(); // Prime the pump
 
-    accept(Token::MODULE);
+    auto start = accept(Token::MODULE);
     auto name = accept(Token::IDENTIFIER);
     accept(Token::SEMICOLON);
 
@@ -117,8 +117,10 @@ shared_ptr<ModuleAST> Parser::parseModule(shared_ptr<Lexer> _lexer) {
     accept(Token::END);
     // TODO: Warning if names don't match
     accept(Token::IDENTIFIER);
-    accept(Token::DOT);
+    auto end = accept(Token::DOT);
 
+    module->start = start;
+    module->end = end;
     return module;
 }
 
@@ -147,32 +149,37 @@ void Parser::parseImport(vector<pair<string, string>> &imports) {
 void Parser::parseTypeDecl(vector<shared_ptr<DeclAST>> &decls) {
     accept(Token::TYPE);
     do {
-        parseIdentDef();
+        auto decl = make_shared<TypeDeclAST>();
+        decl->start = expect();
+        decl->ident = parseIdentDef();
         shared_ptr<Token> tok = accept(Token::RELATION);
         if (tok->getText() != "=") {
             throw ParserException("Expected '=', got " + tok->getText(), tok->getLocation());
         }
-        parseType();
-        accept(Token::SEMICOLON);
+        decl->type = parseType();
+        decl->end = accept(Token::SEMICOLON);
+        decls.push_back(decl);
     } while (expect(Token::IDENTIFIER));
 }
 
 void Parser::parseConstDecl(vector<shared_ptr<DeclAST>> &decls) {
     accept(Token::CONST);
     do {
+        auto start = expect();
         parseIdentDef();
         shared_ptr<Token> tok = accept(Token::RELATION);
         if (tok->getText() != "=") {
             throw ParserException("Expected '='. got " + tok->getText(), tok->getLocation());
         }
         parseConstExpr();
-        accept(Token::SEMICOLON);
+        auto end = accept(Token::SEMICOLON);
     } while (expect(Token::IDENTIFIER));
 }
 
 void Parser::parseVarDecl(vector<shared_ptr<DeclAST>> &decls) {
     accept(Token::VAR);
     do {
+        auto start = expect();
         parseIdentDef();
         while (expect(Token::COMMA)) {
             accept(Token::COMMA);
@@ -180,31 +187,39 @@ void Parser::parseVarDecl(vector<shared_ptr<DeclAST>> &decls) {
         }
         accept(Token::COLON);
         parseType();
-        accept(Token::SEMICOLON);
+        auto end = accept(Token::SEMICOLON);
     } while (expect(Token::IDENTIFIER));
 }
 
 void Parser::parseExternDecl(vector<shared_ptr<DeclAST>> &decls) {
-    accept(Token::EXTERN);
+    auto start = accept(Token::EXTERN);
     auto ident = parseIdentDef();
     parseFormalParams();
-    decls.push_back(make_shared<ExternDeclAST>(ident));
+
+    shared_ptr<ExternDeclAST> _extern = make_shared<ExternDeclAST>(ident);
+    _extern->start = start;
+    _extern->end = expect();
+    decls.push_back(_extern);
 }
 
-void Parser::parseForwardDecl(vector<shared_ptr<DeclAST>> &decls) {
+void Parser::parseForwardDecl(shared_ptr<Token> start, vector<shared_ptr<DeclAST>> &decls) {
     accept(Token::CARET);
     if (expect(Token::LPAREN)) {
         parseReceiver();
     }
     auto ident = parseIdentDef();
     parseFormalParams();
+
+    shared_ptr<ForwardDeclAST> forward = make_shared<ForwardDeclAST>(ident);
+    forward->start = start;
+    forward->end = expect();
     decls.push_back(make_shared<ForwardDeclAST>(ident));
 }
 
 void Parser::parseProcDecl(vector<shared_ptr<DeclAST>> &decls) {
-    accept(Token::PROCEDURE);
+    auto start = accept(Token::PROCEDURE);
     if (currentToken->getKind() == Token::CARET) {
-        parseForwardDecl(decls);
+        parseForwardDecl(start, decls);
     } else {
         if (expect(Token::LPAREN)) {
             parseReceiver();
@@ -242,7 +257,10 @@ void Parser::parseProcDecl(vector<shared_ptr<DeclAST>> &decls) {
 
         accept(Token::END);
         accept(Token::IDENTIFIER);
-        accept(Token::SEMICOLON);
+        auto end = accept(Token::SEMICOLON);
+
+        proc->start = start;
+        proc->end = end;
 
         decls.push_back(proc);
     }
@@ -259,14 +277,17 @@ void Parser::parseStatementSeq(vector<shared_ptr<StatementAST>> &stmts) {
         case Token::IDENTIFIER: {
             auto des = parseDesignator();
             if (expect(Token::ASSIGNMENT)) {
-                auto assign = make_shared<AssignStatementAST>(des);
                 // Assignment
+                auto assign = make_shared<AssignStatementAST>(des);
+                assign->start = keyword;
                 accept(Token::ASSIGNMENT);
                 assign->expr = parseExpr();
+                assign->end = expect();
                 stmts.push_back(assign);
             } else if (expect(Token::LPAREN)) {
                 // Call with parameters
                 auto call = make_shared<CallStatementAST>(des);
+                call->start = keyword;
                 accept(Token::LPAREN);
                 if (!expect(Token::RPAREN)) {
                     call->args.push_back(parseExpr());
@@ -275,25 +296,31 @@ void Parser::parseStatementSeq(vector<shared_ptr<StatementAST>> &stmts) {
                         call->args.push_back(parseExpr());
                     }
                 }
-                accept(Token::RPAREN);
+                call->end = accept(Token::RPAREN);
                 stmts.push_back(call);
             } else {
                 // Naked call
-                stmts.push_back(make_shared<CallStatementAST>(des));
+                auto call = make_shared<CallStatementAST>(des);
+                call->start = keyword;
+                call->end = expect();
+                stmts.push_back(call);
             }
             break;
         }
         case Token::IF: {
-            accept(Token::IF);
+            auto start = accept(Token::IF);
             auto cond = parseExpr();
             auto _if = make_shared<IfStatementAST>(cond);
+            _if->start = start;
             auto root = _if;
             accept(Token::THEN);
             parseStatementSeq(_if->thenStmts);
             while (expect(Token::ELSIF)) {
-                accept(Token::ELSIF);
+                start = accept(Token::ELSIF);
                 cond = parseExpr();
                 auto _newif = make_shared<IfStatementAST>(cond);
+                _newif->start = start;
+                _if->end = start;
                 accept(Token::THEN);
                 parseStatementSeq(_newif->thenStmts);
                 _if->elseStmts.push_back(_newif);
@@ -303,7 +330,7 @@ void Parser::parseStatementSeq(vector<shared_ptr<StatementAST>> &stmts) {
                 accept(Token::ELSE);
                 parseStatementSeq(_if->elseStmts);
             }
-            accept(Token::END);
+            _if->end = accept(Token::END);
             stmts.push_back(root);
             break;
         }
@@ -311,6 +338,7 @@ void Parser::parseStatementSeq(vector<shared_ptr<StatementAST>> &stmts) {
             accept(Token::CASE);
             auto cond = parseExpr();
             auto _case = make_shared<CaseStatementAST>(cond);
+            _case->start = keyword;
             accept(Token::OF);
             parseCase(_case->clauses);
             while (expect(Token::PIPE)) {
@@ -318,10 +346,10 @@ void Parser::parseStatementSeq(vector<shared_ptr<StatementAST>> &stmts) {
                 parseCase(_case->clauses);
             }
             if (expect(Token::ELSE)) {
-                accept(Token::CASE);
+                accept(Token::ELSE);
                 parseStatementSeq(_case->elseStmts);
             }
-            accept(Token::END);
+            _case->end = accept(Token::END);
             stmts.push_back(_case);
             break;
         }
@@ -329,24 +357,26 @@ void Parser::parseStatementSeq(vector<shared_ptr<StatementAST>> &stmts) {
             accept(Token::WHILE);
             auto cond = parseExpr();
             auto _while = make_shared<WhileStatementAST>(cond);
+            _while->start = keyword;
             accept(Token::DO);
             parseStatementSeq(_while->stmts);
-            accept(Token::END);
+            _while->end = accept(Token::END);
             stmts.push_back(_while);
             break;
         }
         case Token::REPEAT: {
             auto repeat = make_shared<RepeatStatementAST>();
-            accept(Token::REPEAT);
+            repeat->start = accept(Token::REPEAT);
             parseStatementSeq(repeat->stmts);
             accept(Token::UNTIL);
             repeat->cond = parseExpr();
+            repeat->end = expect();
             stmts.push_back(repeat);
             break;
         }
         case Token::FOR: {
             auto _for = make_shared<ForStatementAST>();
-            accept(Token::FOR);
+            _for->start = accept(Token::FOR);
             auto iden = accept(Token::IDENTIFIER);
             _for->iden = iden->getText();
             accept(Token::ASSIGNMENT);
@@ -361,21 +391,21 @@ void Parser::parseStatementSeq(vector<shared_ptr<StatementAST>> &stmts) {
             }
             accept(Token::DO);
             parseStatementSeq(_for->stmts);
-            accept(Token::END);
+            _for->end = accept(Token::END);
             stmts.push_back(_for);
             break;
         }
         case Token::LOOP: {
             auto loop = make_shared<LoopStatementAST>();
-            accept(Token::LOOP);
+            loop->start = accept(Token::LOOP);
             parseStatementSeq(loop->stmts);
-            accept(Token::END);
+            loop->end = accept(Token::END);
             stmts.push_back(loop);
             break;
         }
         case Token::WITH: {
             auto with = make_shared<WithStatementAST>();
-            accept(Token::WITH);
+            with->start = accept(Token::WITH);
             auto name = accept(Token::IDENTIFIER);
             accept(Token::COLON);
             auto type = accept(Token::IDENTIFIER);
@@ -401,21 +431,24 @@ void Parser::parseStatementSeq(vector<shared_ptr<StatementAST>> &stmts) {
                 accept(Token::ELSE);
                 parseStatementSeq(with->elseStmts);
             }
-            accept(Token::END);
+            with->end = accept(Token::END);
             stmts.push_back(with);
             break;
         }
         case Token::EXIT: {
-            accept(Token::EXIT);
-            stmts.push_back(make_shared<ExitStatementAST>());
+            auto exit = make_shared<ExitStatementAST>();
+            exit->start = accept(Token::EXIT);
+            exit->end = exit->start;
+            stmts.push_back(exit);
             break;
         }
         case Token::RETURN: {
-            accept(Token::RETURN);
             auto _return = make_shared<ReturnStatementAST>();
+            _return->start = accept(Token::RETURN);
             if (!expect({ Token::SEMICOLON, Token::END })) {
                 _return->expr = parseExpr();
             }
+            _return->end = expect();
             stmts.push_back(_return);
             break;
         }
@@ -431,6 +464,7 @@ void Parser::parseStatementSeq(vector<shared_ptr<StatementAST>> &stmts) {
 
 void Parser::parseCase(vector<shared_ptr<CaseClauseAST>> &clauses) {
     shared_ptr<CaseClauseAST> clause = make_shared<CaseClauseAST>();
+    clause->start = expect();
     pair<shared_ptr<ExprAST>, shared_ptr<ExprAST>> item;
     item.first = parseConstExpr();
     if (expect(Token::RANGE)) {
@@ -455,18 +489,25 @@ void Parser::parseCase(vector<shared_ptr<CaseClauseAST>> &clauses) {
     accept(Token::COLON);
     parseStatementSeq(clause->stmts);
 
+    clause->end = expect();
+
     clauses.push_back(clause);
 }
 
-void Parser::parseReceiver() {
-    accept(Token::LPAREN);
+shared_ptr<ReceiverAST> Parser::parseReceiver() {
+    auto receiver = make_shared<ReceiverAST>();
+    receiver->start = accept(Token::LPAREN);
     if (expect(Token::VAR)) {
         accept(Token::VAR);
+        receiver->isVar = true;
     }
-    accept(Token::IDENTIFIER);
+    auto name = accept(Token::IDENTIFIER);
     accept(Token::COLON);
-    accept(Token::IDENTIFIER);
-    accept(Token::RPAREN);
+    auto type = accept(Token::IDENTIFIER);
+    receiver->name = name->getText();
+    receiver->type = type->getText();
+    receiver->end = accept(Token::RPAREN);
+    return receiver;
 }
 
 void Parser::parseFormalParams() {
@@ -493,8 +534,10 @@ void Parser::parseFormalParams() {
     }
 }
 
-void Parser::parseType() {
+shared_ptr<TypeAST> Parser::parseType() {
+    auto type = make_shared<TypeAST>();
     auto keyword = accept({ Token::IDENTIFIER, Token::ARRAY, Token::RECORD, Token::POINTER, Token::PROCEDURE });
+    type->start = keyword;
     switch(keyword->getKind()) {
     case Token::IDENTIFIER:
         break;
@@ -544,13 +587,20 @@ void Parser::parseType() {
     default:
         break;
     }
+    type->end = expect();
+    return type;
 }
 
 shared_ptr<ExprAST> Parser::parseConstExpr() {
-    return parseExpr();
+    auto expr = parseExpr();
+    if (expr) {
+        expr->isConst = true;
+    }
+    return expr;
 }
 
 shared_ptr<ExprAST> Parser::parseExpr() {
+    auto start = expect();
     shared_ptr<ExprAST> LHS = parseUnaryExpr();
     if (!LHS) {
         return nullptr;
@@ -558,15 +608,19 @@ shared_ptr<ExprAST> Parser::parseExpr() {
     shared_ptr<ExprAST> lexpr = parseBinOpRHS(LHS, 0);
     shared_ptr<ExprAST> rexpr = nullptr;
     if (expect(Token::RELATION)) {
-        accept(Token::RELATION);
+        auto rel = accept(Token::RELATION);
 
         LHS = parseUnaryExpr();
         if (!LHS) {
             return nullptr;
         }
         rexpr = parseBinOpRHS(LHS, 0);
+        auto binExpr = make_shared<BinExprAST>(rel->getText(), lexpr, rexpr);
+        binExpr->start = start;
+        binExpr->end = expect();
+        return binExpr;
     }
-    return nullptr;
+    return lexpr;
 }
 
 shared_ptr<ExprAST> Parser::parseUnaryExpr() {
@@ -619,19 +673,32 @@ shared_ptr<ExprAST> Parser::parseFactor() {
         return nullptr;
     }
     switch(tok->getKind()) {
-    case Token::IDENTIFIER:
+    case Token::IDENTIFIER: {
         // Variable/Constant or Procedure call
-        parseDesignator();
+        auto start = expect();
+        auto des = parseDesignator();
         if (expect(Token::LPAREN)) {
+            auto call = make_shared<CallStatementAST>(des);
+            call->start = start;
             accept(Token::LPAREN);
-            parseExpr();
-            while (expect(Token::COMMA)) {
-                accept(Token::COMMA);
-                parseExpr();
+            if (!expect(Token::RPAREN)) {
+                call->args.push_back(parseExpr());
+                while (expect(Token::COMMA)) {
+                    accept(Token::COMMA);
+                    call->args.push_back(parseExpr());
+                }
             }
-            accept(Token::RPAREN);
+            call->end = accept(Token::RPAREN);
+            auto callExpr = make_shared<CallExprAST>(call);
+            callExpr->start = call->start;
+            callExpr->end = call->end;
+            return callExpr;
         }
-        break;
+        auto iden = make_shared<IdentifierAST>(des);
+        iden->start = start;
+        iden->end = expect();
+        return iden;
+    }
     case Token::BOOLLITERAL:
         tok = accept(Token::BOOLLITERAL);
         return make_shared<BoolLiteralAST>(tok->getBoolVal());
@@ -670,11 +737,13 @@ shared_ptr<ExprAST> Parser::parseFactor() {
         }
         accept(Token::RCURLY);
         break;
-  case Token::LPAREN:
-        accept(Token::LPAREN);
-        parseExpr();
-        accept(Token::RPAREN);
-        break;
+  case Token::LPAREN: {
+        auto start = accept(Token::LPAREN);
+        auto expr = parseExpr();
+        expr->start = start;
+        expr->end = accept(Token::RPAREN);
+        return expr;
+    }
     case Token::TILDE:
         // NOT
         accept(Token::TILDE);

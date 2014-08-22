@@ -8,6 +8,8 @@ struct Location {
     unsigned int line, column;
 };
 
+std::ostream &operator<<(std::ostream& out, Location loc);
+
 class Token {
 public:
     enum Kind {
@@ -15,7 +17,7 @@ public:
         IDENTIFIER, RELATION, OPERATOR,
         MODULE, IMPORT, BEGIN, END, EXTERN, PROCEDURE, EXIT, RETURN, VAR, CONST, TYPE,
         ARRAY, RECORD, POINTER, OF, TO,
-        IF, THEN, ELSIF, ELSE, CASE, WITH, 
+        IF, THEN, ELSIF, ELSE, CASE, WITH,
         REPEAT, UNTIL, WHILE, DO, FOR, BY, LOOP,
         DOT, RANGE, COMMA, COLON, SEMICOLON, ASSIGNMENT, PIPE, CARET, TILDE,
         LPAREN, RPAREN, LCURLY, RCURLY, LSQUARE, RSQUARE,

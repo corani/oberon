@@ -3,7 +3,7 @@
 using namespace std;
 
 void ModuleAST::print(ostream &out, string pre) const {
-    out << pre << "* Module[" << name << "]" << endl;
+    out << pre << "* Module[" << name << "] src: " << start->getLocation() << " - " << end->getLocation() << endl;
     if (!imports.empty()) {
         out << pre << "+-Imports: ";
         bool first = true;
@@ -34,7 +34,7 @@ void ModuleAST::print(ostream &out, string pre) const {
 }
 
 void ProcDeclAST::print(ostream &out, string pre) const {
-    out << pre << "* ProcDecl[" << ident->name << "]" << endl;
+    out << pre << "* ProcDecl[" << ident->name << "] src: " << start->getLocation() << " - " << end->getLocation() << endl;
     if (!decls.empty()) {
         out << pre << "+- Declarations:" << endl;
         for (auto decl : decls) {
@@ -59,7 +59,11 @@ void ExternDeclAST::print(ostream &out, string pre) const {
 }
 
 void TypeDeclAST::print(ostream &out, string pre) const {
-    out << pre << "* TypeDecl" << endl;
+    out << pre << "* TypeDecl[" << ident->name << "] src: " << start->getLocation() << " - " << end->getLocation() << endl;
+}
+
+void TypeAST::print(ostream &out, string pre) const {
+    out << pre << "* Type" << endl;
 }
 
 void ConstDeclAST::print(ostream &out, string pre) const {
@@ -68,6 +72,10 @@ void ConstDeclAST::print(ostream &out, string pre) const {
 
 void VarDeclAST::print(ostream &out, string pre) const {
     out << pre << "* VarDecl" << endl;
+}
+
+void ReceiverAST::print(ostream &out, string pre) const {
+    out << pre << "* Receiver[" << name << ": " << type << "]" << end;
 }
 
 void IfStatementAST::print(ostream &out, string pre) const {
@@ -144,10 +152,64 @@ void ReturnStatementAST::print(ostream &out, string pre) const {
 }
 
 void AssignStatementAST::print(ostream &out, string pre) const {
-    out << pre << "* AssignStatement[" << des->name << "]" << endl;
+    out << pre << "* AssignStatement[" << des->name << "] = " << endl;
+    expr->print(out, pre + "|  ");
 }
 
 void CallStatementAST::print(ostream &out, string pre) const {
     out << pre << "* CallStatement[" << des->name << "]" << endl;
+    for (auto arg : args) {
+        arg->print(out, pre + "|  ");
+    }
 }
 
+void UnExprAST::print(ostream &out, string pre) const {
+    out << pre << "* UnExpr[" << op << "]" << endl;
+    operand->print(out, pre + "|  ");
+}
+
+void BinExprAST::print(ostream &out, string pre) const {
+    out << pre << "* BinExpr[" << op << "]" << endl;
+    lhs->print(out, pre + "L  ");
+    rhs->print(out, pre + "R  ");
+}
+
+void IdentDefAST::print(ostream &out, string pre) const {
+    out << pre << "IdentDef[" << name << "]" << endl;
+}
+
+void DesignatorAST::print(ostream &out, string pre) const {
+    out << pre << "Designator" << endl;
+}
+
+void NilLiteralAST::print(ostream &out, string pre) const {
+    out << pre << "NilLiteral" << endl;
+}
+
+void CharLiteralAST::print(ostream &out, string pre) const {
+    out << pre << "CharLiteral[" << string(1, value) << "]" << endl;
+}
+
+void StrLiteralAST::print(ostream &out, string pre) const {
+    out << pre << "StrLiteral[" << value << "]" << endl;
+}
+
+void FloatLiteralAST::print(ostream &out, string pre) const {
+    out << pre << "FloatLiteral[" << value << "]" << endl;
+}
+
+void IntLiteralAST::print(ostream &out, string pre) const {
+    out << pre << "IntLiteral[" << value << "]" << endl;
+}
+
+void BoolLiteralAST::print(ostream &out, string pre) const {
+    out << pre << "BoolLiteral[" << (value ? "TRUE" : "FALSE") << "]" << endl;
+}
+
+void CallExprAST::print(ostream &out, string pre) const {
+    call->print(out, pre);
+}
+
+void IdentifierAST::print(ostream &out, string pre) const {
+    out << pre << "Identifier[" << des->name << "]" << endl;
+}

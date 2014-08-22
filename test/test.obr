@@ -3,9 +3,19 @@ IMPORT System, S := Something;
 
 (* Hello World! *)
 VAR input : INTEGER;
+TYPE PointRec = RECORD
+                  x, y: INTEGER
+                END;
+     Point    = POINTER TO PointRec;
 
 EXTERN INC(x: INTEGER)
 EXTERN DEC(x: INTEGER)
+
+PROCEDURE (p: Point) move(x, y: INTEGER);
+BEGIN
+  INC(p^.x, x);
+  INC(p^.y, y)
+END move;
 
 PROCEDURE log2(x: INTEGER): INTEGER;
 VAR y: INTEGER; (* assume x > 0 *)

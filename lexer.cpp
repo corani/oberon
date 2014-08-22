@@ -4,6 +4,11 @@
 
 using namespace std;
 
+ostream &operator<<(ostream &out, Location loc) {
+    out << "(" << loc.line << ", " << loc.column << ")";
+    return out;
+}
+
 map<string, Token::Kind> str_to_tok = {
     {"MODULE",      Token::MODULE},
     {"IMPORT",      Token::IMPORT},
