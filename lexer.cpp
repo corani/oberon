@@ -159,7 +159,7 @@ shared_ptr<Token> Lexer::nextToken() {
         return make_shared<Token>(Token::IDENTIFIER, loc, text);
     } else if (isdigit(lastChar)) {
         string numStr;
-        bool isReal = false, isHex = false, isScaled = false, isSigned = false, isDone = false;
+        bool isReal = false, isHex = false, isScaled = false, isSigned = false, isDone = false, isChar = false;
         while (!isDone) {
             switch (lastChar) {
             case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
@@ -208,12 +208,23 @@ shared_ptr<Token> Lexer::nextToken() {
                 numStr.push_back(lastChar);
                 take();
                 break;
+            case 'X':
+                if (isReal) {
+                    isDone = true;
+                } else {
+                    isChar = true;
+                    isDone = true;
+                    take();
+                }
+                break;
             default:
                 isDone = true;
             }
         }
         if (isReal) {
             return make_shared<Token>(Token::FLOATLITERAL, loc, stof(numStr.c_str()));
+        } else if (isChar) {
+            return make_shared<Token>(Token::CHARLITERAL, loc, stoi(numStr.c_str(), 0, 16));
         } else {
             return make_shared<Token>(Token::INTLITERAL, loc, stoi(numStr.c_str()));
         }
