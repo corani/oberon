@@ -35,27 +35,59 @@ void ModuleAST::print(ostream &out, string pre) const {
 
 void ProcDeclAST::print(ostream &out, string pre) const {
     out << pre << "* ProcDecl[" << ident->name << "] src: " << start->getLocation() << " - " << end->getLocation() << endl;
+    if (ret) {
+        out << pre << "|  +- Return Type:" << endl;
+        ret->print(out, pre + "|  |  ");
+    }
+    if (!params.empty()) {
+        out << pre << "|  +- Params:" << endl;
+        for (auto param : params) {
+            param->print(out, pre + "|  |  ");
+        }
+    }
     if (!decls.empty()) {
-        out << pre << "+- Declarations:" << endl;
+        out << pre << "|  +- Declarations:" << endl;
         for (auto decl : decls) {
-            decl->print(out, pre + "|  ");
+            decl->print(out, pre + "|  |  ");
         }
     }
     if (!stmts.empty()) {
-        out << pre << "+- Statements:" << endl;
+        out << pre << "|  +- Statements:" << endl;
         for (auto stmt : stmts) {
-            stmt->print(out, pre + "|  ");
+            stmt->print(out, pre + "|  |  ");
         }
     }
-    out << pre << "= ProcDecl[" << ident->name << "]" << endl;
+    out << pre << "|  = ProcDecl[" << ident->name << "]" << endl;
 }
 
 void ForwardDeclAST::print(ostream &out, string pre) const {
     out << pre << "* ForwardDecl[" << ident->name << "]" << endl;
+    if (ret) {
+        out << pre << "|  +- Return Type:" << endl;
+        ret->print(out, pre + "|  |  ");
+    }
+    if (!params.empty()) {
+        out << pre << "|  +- Params:" << endl;
+        for (auto param : params) {
+            param->print(out, pre + "|  |  ");
+        }
+    }
+    out << pre << "|  = ForwardDecl[" << ident->name << "]" << endl;
 }
 
 void ExternDeclAST::print(ostream &out, string pre) const {
     out << pre << "* ExternDecl[" << ident->name << "]" << endl;
+    if (ret) {
+        out << pre << "|  +- Return Type:" << endl;
+        ret->print(out, pre + "|  |  ");
+    }
+    if (!params.empty()) {
+        out << pre << "|  +- Params:" << endl;
+        for (auto param : params) {
+            param->print(out, pre + "|  |  ");
+        }
+    }
+    out << pre << "|  = ExternDecl[" << ident->name << "]" << endl;
 }
 
 void TypeDeclAST::print(ostream &out, string pre) const {
@@ -66,12 +98,36 @@ void TypeAST::print(ostream &out, string pre) const {
     out << pre << "* Type" << endl;
 }
 
+void BasicTypeAST::print(ostream &out, string pre) const {
+    out << pre << "* BasicType:" << endl;
+    qid->print(out, pre + "|  ");
+}
+
+void ArrayTypeAST::print(ostream &out, string pre) const {
+    out << pre << "* ArrayType" << endl;
+    arrayOf->print(out, pre + "|  ");
+}
+
+void RecordTypeAST::print(ostream &out, string pre) const {
+    out << pre << "* RecordType" << endl;
+}
+
+void PointerTypeAST::print(ostream &out, string pre) const {
+    out << pre << "* PointerType to:" << endl;
+    pointee->print(out, pre + "|  ");
+}
+
+void ProcedureTypeAST::print(ostream &out, string pre) const {
+    out << pre << "* ProcedureType" << endl;
+}
+
 void ConstDeclAST::print(ostream &out, string pre) const {
     out << pre << "* ConstDecl" << endl;
 }
 
 void VarDeclAST::print(ostream &out, string pre) const {
-    out << pre << "* VarDecl" << endl;
+    out << pre << "* VarDecl[" << ident->name << "]" << endl;
+    type->print(out, pre + "|  ");
 }
 
 void ReceiverAST::print(ostream &out, string pre) const {
@@ -80,19 +136,21 @@ void ReceiverAST::print(ostream &out, string pre) const {
 
 void IfStatementAST::print(ostream &out, string pre) const {
     out << pre << "* IfStatement" << endl;
+    out << pre << "|  +- Condition:" << endl;
+    cond->print(out, pre + "|  |  ");
     if (!thenStmts.empty()) {
-        out << pre << "+- Then:" << endl;
+        out << pre << "|  +- Then:" << endl;
         for (auto stmt : thenStmts) {
-            stmt->print(out, pre + "|  ");
+            stmt->print(out, pre + "|  |  ");
         }
     }
     if (!elseStmts.empty()) {
-        out << pre << "+- Else:" << endl;
+        out << pre << "|  +- Else:" << endl;
         for (auto stmt : elseStmts) {
-            stmt->print(out, pre + "|  ");
+            stmt->print(out, pre + "|  |  ");
         }
     }
-    out << pre << "= IfStatement" << endl;
+    out << pre << "|  = IfStatement" << endl;
 }
 
 void CaseClauseAST::print(ostream &out, string pre) const {
@@ -105,34 +163,50 @@ void CaseStatementAST::print(ostream &out, string pre) const {
 
 void WhileStatementAST::print(ostream &out, string pre) const {
     out << pre << "* WhileStatement" << endl;
+    out << pre << "|  +- Condition:" << endl;
+    cond->print(out, pre + "|  |  ");
+    out << pre << "|  +- Statements:" << endl;
     for (auto stmt : stmts) {
-        stmt->print(out, pre + "|  ");
+        stmt->print(out, pre + "|  |  ");
     }
-    out << pre << "= WhileStatement" << endl;
+    out << pre << "|  = WhileStatement" << endl;
 }
 
 void RepeatStatementAST::print(ostream &out, string pre) const {
     out << pre << "* RepeatStatement" << endl;
+    out << pre << "|  +- Statements:" << endl;
     for (auto stmt : stmts) {
-        stmt->print(out, pre + "|  ");
+        stmt->print(out, pre + "|  |  ");
     }
-    out << pre << "= RepeatStatement" << endl;
+    out << pre << "|  +- Condition:" << endl;
+    cond->print(out, pre + "|  |  ");
+    out << pre << "|  = RepeatStatement" << endl;
 }
 
 void ForStatementAST::print(ostream &out, string pre) const {
-    out << pre << "* ForStatement" << endl;
-    for (auto stmt : stmts) {
-        stmt->print(out, pre + "|  ");
+    out << pre << "* ForStatement[" << iden << "]" << endl;
+    out << pre << "|  +- From:" << endl;
+    from->print(out, pre + "|  |  ");
+    out << pre << "|  +- To:" << endl;
+    to->print(out, pre + "|  |  ");
+    if (by) {
+        out << pre << "|  +- By:" << endl;
+        by->print(out, "|  |  ");
     }
-    out << pre << "= ForStatement" << endl;
+    out << pre << "|  +- Statements:" << endl;
+    for (auto stmt : stmts) {
+        stmt->print(out, pre + "|  |  ");
+    }
+    out << pre << "|  = ForStatement" << endl;
 }
 
 void LoopStatementAST::print(ostream &out, string pre) const {
     out << pre << "* LoopStatement" << endl;
+    out << pre << "|  +- Statements:" << endl;
     for (auto stmt : stmts) {
-        stmt->print(out, pre + "|  ");
+        stmt->print(out, pre + "|  |  ");
     }
-    out << pre << "= LoopStatement" << endl;
+    out << pre << "|  = LoopStatement" << endl;
 }
 
 void WithClauseAST::print(ostream &out, string pre) const {
@@ -152,12 +226,12 @@ void ReturnStatementAST::print(ostream &out, string pre) const {
 }
 
 void AssignStatementAST::print(ostream &out, string pre) const {
-    out << pre << "* AssignStatement[" << des->name << "] = " << endl;
+    out << pre << "* AssignStatement[" << des->qid->name << "] = " << endl;
     expr->print(out, pre + "|  ");
 }
 
 void CallStatementAST::print(ostream &out, string pre) const {
-    out << pre << "* CallStatement[" << des->name << "]" << endl;
+    out << pre << "* CallStatement[" << des->qid->name << "]" << endl;
     for (auto arg : args) {
         arg->print(out, pre + "|  ");
     }
@@ -211,5 +285,9 @@ void CallExprAST::print(ostream &out, string pre) const {
 }
 
 void IdentifierAST::print(ostream &out, string pre) const {
-    out << pre << "Identifier[" << des->name << "]" << endl;
+    out << pre << "Identifier[" << des->qid->name << "]" << endl;
+}
+
+void QualIdentAST::print(ostream &out, string pre) const {
+    out << pre << "* QualIdent[" << module << "." << name << "]" << endl;
 }

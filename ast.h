@@ -27,11 +27,18 @@ public:
 };
 
 class StatementAST;
-class DeclAST;
 class IdentDefAST;
 class TypeAST;
+class ExprAST;
+class QualIdentAST;
+class VarDeclAST;
 
-class ModuleAST : public BaseAST {
+class DeclAST : public BaseAST {
+public:
+    bool byRef = false;
+};
+
+class ModuleAST : public DeclAST {
 public:
     ModuleAST(string name) : name(name) {}
 
@@ -43,15 +50,14 @@ public:
     vector<shared_ptr<StatementAST>> stmts;
 };
 
-class DeclAST : public BaseAST {
-};
-
 class ProcDeclAST : public DeclAST {
 public:
     ProcDeclAST(shared_ptr<IdentDefAST> ident) : ident(ident) {}
     virtual void print(ostream &out, string pre = "") const;
 public:
     shared_ptr<IdentDefAST> ident;
+    shared_ptr<QualIdentAST> ret;
+    vector<shared_ptr<VarDeclAST>> params;
     vector<shared_ptr<DeclAST>> decls;
     vector<shared_ptr<StatementAST>> stmts;
 };
@@ -62,6 +68,8 @@ public:
     virtual void print(ostream &out, string pre = "") const;
 public:
     shared_ptr<IdentDefAST> ident;
+    shared_ptr<QualIdentAST> ret;
+    vector<shared_ptr<VarDeclAST>> params;
 };
 
 class ExternDeclAST : public DeclAST {
@@ -70,6 +78,8 @@ public:
     virtual void print(ostream &out, string pre = "") const;
 public:
     shared_ptr<IdentDefAST> ident;
+    shared_ptr<QualIdentAST> ret;
+    vector<shared_ptr<VarDeclAST>> params;
 };
 
 class TypeDeclAST : public DeclAST {
@@ -85,22 +95,62 @@ public:
     virtual void print(ostream &out, string pre = "") const;
 };
 
+class BasicTypeAST : public TypeAST {
+public:
+    BasicTypeAST(shared_ptr<QualIdentAST> qid) : qid(qid) {}
+    virtual void print(ostream &out, string pre = "") const;
+public:
+    shared_ptr<QualIdentAST> qid;
+};
+
+class ArrayTypeAST : public TypeAST {
+public:
+    virtual void print(ostream &out, string pre = "") const;
+public:
+    shared_ptr<TypeAST> arrayOf;
+};
+
+class RecordTypeAST : public TypeAST {
+public:
+    virtual void print(ostream &out, string pre = "") const;
+};
+
+class PointerTypeAST : public TypeAST {
+public:
+    virtual void print(ostream &out, string pre = "") const;
+public:
+    shared_ptr<TypeAST> pointee;
+};
+
+class ProcedureTypeAST : public TypeAST {
+public:
+    virtual void print(ostream &out, string pre = "") const;
+public:
+    shared_ptr<QualIdentAST> ret;
+    vector<shared_ptr<VarDeclAST>> params;
+};
+
 class VarDeclAST : public DeclAST {
 public:
     virtual void print(ostream &out, string pre = "") const;
+public:
+    shared_ptr<IdentDefAST> ident;
+    shared_ptr<TypeAST> type;
 };
 
 class ConstDeclAST : public DeclAST {
 public:
     virtual void print(ostream &out, string pre = "") const;
+public:
+    shared_ptr<IdentDefAST> ident;
+    shared_ptr<ExprAST> expr;
 };
 
-class ReceiverAST : public BaseAST {
+class ReceiverAST : public DeclAST {
 public:
     virtual void print(ostream &out, string pre = "") const;
 public:
     string name, type;
-    bool isVar;
 };
 
 class ExprAST : public BaseAST {
@@ -168,10 +218,10 @@ public:
 
 class DesignatorAST : public ExprAST {
 public:
-    DesignatorAST(string name) : name(name) {}
+    DesignatorAST(shared_ptr<QualIdentAST> qid) : qid(qid) {}
     virtual void print(ostream &out, string pre = "") const;
 public:
-    string name;
+    shared_ptr<QualIdentAST> qid;
 };
 
 class UnExprAST : public ExprAST {
@@ -203,6 +253,13 @@ public:
     virtual void print(ostream &out, string pre = "") const;
 public:
     shared_ptr<DesignatorAST> des;
+};
+
+class QualIdentAST : public ExprAST {
+public:
+    virtual void print(ostream &out, string pre = "") const;
+public:
+    string module, name;
 };
 
 class StatementAST : public BaseAST {
@@ -279,7 +336,7 @@ public:
     WithClauseAST() {}
     virtual void print(ostream &out, string pre = "") const;
 public:
-    string name, type;
+    shared_ptr<QualIdentAST> name, type;
     vector<shared_ptr<StatementAST>> stmts;
 };
 

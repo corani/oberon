@@ -1,10 +1,12 @@
 #include <vector>
 #include <algorithm>
+#include <utility>
 #include "parser.h"
 
 using namespace std;
 
 const char* ParserException::what() const noexcept {
+    cout << msg << " at " << loc << endl;
     return msg.c_str();
 }
 
@@ -23,7 +25,8 @@ Parser::Parser() : lexer(nullptr), currentToken(nullptr) {
 }
 
 void Parser::push(shared_ptr<Token> token) {
-    tokens.push(token);
+    tokens.push(currentToken);
+    currentToken = token;
 }
 
 shared_ptr<Token> Parser::pop() {
@@ -75,6 +78,36 @@ shared_ptr<Token> Parser::peek(vector<Token::Kind> kinds) {
     return nullptr;
 }
 
+void Parser::enterScope() {
+    scope++;
+    if (scope >= symbols.capacity()) {
+        symbols.push_back({});
+    }
+}
+
+void Parser::leaveScope() {
+    if (scope >= 0) {
+        symbols[scope].clear();
+        scope--;
+    }
+}
+
+void Parser::newSymbol(string name, shared_ptr<DeclAST> ast) {
+    symbols.at(scope).push_back(make_pair(name, ast));
+}
+
+shared_ptr<DeclAST> Parser::findSymbol(string name) {
+    for (int i = scope; i > 0; i--) {
+        auto sv = symbols[i];
+        for (auto p : sv) {
+            if (p.first == name) {
+                return p.second;
+            }
+        }
+    };
+    return nullptr;
+}
+
 shared_ptr<ModuleAST> Parser::parseModule(shared_ptr<Lexer> _lexer) {
     lexer = _lexer;
     pop(); // Prime the pump
@@ -84,6 +117,9 @@ shared_ptr<ModuleAST> Parser::parseModule(shared_ptr<Lexer> _lexer) {
     pop(Token::SEMICOLON);
 
     auto module = make_shared<ModuleAST>(name->getText());
+    enterScope();
+    if (module->name != "STD") enterScope();
+    newSymbol(module->name, module);
 
     if (peek(Token::IMPORT)) {
         parseImport(module->imports);
@@ -105,7 +141,7 @@ shared_ptr<ModuleAST> Parser::parseModule(shared_ptr<Lexer> _lexer) {
         }
     }
 
-    while (auto keyword = peek({ Token::PROCEDURE, Token::EXTERN })) {
+    while (auto keyword = peek({ Token::PROCEDURE, Token::EXTERN, Token::SEMICOLON })) {
         switch(keyword->getKind()) {
         case Token::PROCEDURE:
             parseProcDecl(module->decls);
@@ -114,6 +150,7 @@ shared_ptr<ModuleAST> Parser::parseModule(shared_ptr<Lexer> _lexer) {
             parseExternDecl(module->decls);
             break;
         default:
+            pop();
             break;
         }
     }
@@ -130,6 +167,9 @@ shared_ptr<ModuleAST> Parser::parseModule(shared_ptr<Lexer> _lexer) {
 
     module->start = start;
     module->end = end;
+
+    leaveScope();
+
     return module;
 }
 
@@ -151,6 +191,7 @@ void Parser::parseImport(vector<pair<string, string>> &imports) {
             pop(Token::COMMA);
         }
         imports.push_back(import);
+        newSymbol(import.first, nullptr);
     } while (!peek(Token::SEMICOLON));
     pop(Token::SEMICOLON);
 }
@@ -167,6 +208,7 @@ void Parser::parseTypeDecl(vector<shared_ptr<DeclAST>> &decls) {
         }
         decl->type = parseType();
         decl->end = pop(Token::SEMICOLON);
+        newSymbol(decl->ident->name, decl);
         decls.push_back(decl);
     } while (peek(Token::IDENTIFIER));
 }
@@ -174,40 +216,56 @@ void Parser::parseTypeDecl(vector<shared_ptr<DeclAST>> &decls) {
 void Parser::parseConstDecl(vector<shared_ptr<DeclAST>> &decls) {
     pop(Token::CONST);
     do {
-        auto start = peek();
-        parseIdentDef();
+        auto decl = make_shared<ConstDeclAST>();
+        decl->start = peek();
+        decl->ident = parseIdentDef();
         shared_ptr<Token> tok = pop(Token::RELATION);
         if (tok->getText() != "=") {
             throw ParserException("Expected '='. got " + tok->getText(), tok->getLocation());
         }
-        parseConstExpr();
-        auto end = pop(Token::SEMICOLON);
+        decl->expr = parseConstExpr();
+        decl->end = pop(Token::SEMICOLON);
+        newSymbol(decl->ident->name, decl);
+        decls.push_back(decl);
     } while (peek(Token::IDENTIFIER));
 }
 
 void Parser::parseVarDecl(vector<shared_ptr<DeclAST>> &decls) {
     pop(Token::VAR);
     do {
+        vector<shared_ptr<VarDeclAST>> vars;
         auto start = peek();
-        parseIdentDef();
+        auto decl = make_shared<VarDeclAST>();
+        decl->ident = parseIdentDef();
+        vars.push_back(decl);
         while (peek(Token::COMMA)) {
             pop(Token::COMMA);
-            parseIdentDef();
+            decl = make_shared<VarDeclAST>();
+            decl->ident = parseIdentDef();
+            vars.push_back(decl);
         }
         pop(Token::COLON);
-        parseType();
+        auto type = parseType();
         auto end = pop(Token::SEMICOLON);
+
+        for (auto var : vars) {
+            var->start = start;
+            var->end = end;
+            var->type = type;
+            newSymbol(var->ident->name, var);
+            decls.push_back(var);
+        }
     } while (peek(Token::IDENTIFIER));
 }
 
 void Parser::parseExternDecl(vector<shared_ptr<DeclAST>> &decls) {
     auto start = pop(Token::EXTERN);
     auto ident = parseIdentDef();
-    parseFormalParams();
-
-    shared_ptr<ExternDeclAST> _extern = make_shared<ExternDeclAST>(ident);
+    auto _extern = make_shared<ExternDeclAST>(ident);
+    _extern->ret = parseFormalParams(_extern->params);
     _extern->start = start;
     _extern->end = peek();
+    newSymbol(ident->name, _extern);
     decls.push_back(_extern);
 }
 
@@ -217,12 +275,12 @@ void Parser::parseForwardDecl(shared_ptr<Token> start, vector<shared_ptr<DeclAST
         parseReceiver();
     }
     auto ident = parseIdentDef();
-    parseFormalParams();
-
-    shared_ptr<ForwardDeclAST> forward = make_shared<ForwardDeclAST>(ident);
+    auto forward = make_shared<ForwardDeclAST>(ident);
+    forward->ret = parseFormalParams(forward->params);
     forward->start = start;
     forward->end = peek();
-    decls.push_back(make_shared<ForwardDeclAST>(ident));
+    newSymbol(ident->name, forward);
+    decls.push_back(forward);
 }
 
 void Parser::parseProcDecl(vector<shared_ptr<DeclAST>> &decls) {
@@ -234,10 +292,12 @@ void Parser::parseProcDecl(vector<shared_ptr<DeclAST>> &decls) {
             parseReceiver();
         }
         auto ident = parseIdentDef();
-        parseFormalParams();
-        pop(Token::SEMICOLON);
-
         auto proc = make_shared<ProcDeclAST>(ident);
+        newSymbol(ident->name, proc);
+
+        enterScope();
+        proc->ret = parseFormalParams(proc->params);
+        pop(Token::SEMICOLON);
 
         while (auto keyword = peek({ Token::TYPE, Token::CONST, Token::VAR })) {
             switch (keyword->getKind()) {
@@ -264,9 +324,10 @@ void Parser::parseProcDecl(vector<shared_ptr<DeclAST>> &decls) {
             parseStatementSeq(proc->stmts);
         }
 
+        leaveScope();
+
         pop(Token::END);
-        pop(Token::IDENTIFIER);
-        auto end = pop(Token::SEMICOLON);
+        auto end = pop(Token::IDENTIFIER);
 
         proc->start = start;
         proc->end = end;
@@ -287,12 +348,19 @@ void Parser::parseStatementSeq(vector<shared_ptr<StatementAST>> &stmts) {
             auto des = parseDesignator();
             if (peek(Token::ASSIGNMENT)) {
                 // Assignment
-                auto assign = make_shared<AssignStatementAST>(des);
-                assign->start = keyword;
-                pop(Token::ASSIGNMENT);
-                assign->expr = parseExpr();
-                assign->end = peek();
-                stmts.push_back(assign);
+                auto sym = findSymbol(des->qid->name);
+                auto var = dynamic_cast<VarDeclAST *>(sym.get());
+                if (var) {
+                    auto assign = make_shared<AssignStatementAST>(des);
+                    assign->start = keyword;
+                    pop(Token::ASSIGNMENT);
+                    assign->expr = parseExpr();
+                    assign->end = peek();
+                    stmts.push_back(assign);
+                } else {
+                    cout << var->ident->name << endl;
+                    throw ParserException("Modifiable variable expected", keyword->getLocation());
+                }
             } else if (peek(Token::LPAREN)) {
                 // Call with parameters
                 auto call = make_shared<CallStatementAST>(des);
@@ -415,26 +483,10 @@ void Parser::parseStatementSeq(vector<shared_ptr<StatementAST>> &stmts) {
         case Token::WITH: {
             auto with = make_shared<WithStatementAST>();
             with->start = pop(Token::WITH);
-            auto name = pop(Token::IDENTIFIER);
-            pop(Token::COLON);
-            auto type = pop(Token::IDENTIFIER);
-            pop(Token::DO);
-            auto clause = make_shared<WithClauseAST>();
-            clause->name = name->getText();
-            clause->type = type->getText();
-            parseStatementSeq(clause->stmts);
-            with->clauses.push_back(clause);
+            parseWithGuard(with->clauses);
             while (peek(Token::PIPE)) {
                 pop(Token::PIPE);
-                name = pop(Token::IDENTIFIER);
-                pop(Token::COLON);
-                type = pop(Token::IDENTIFIER);
-                pop(Token::DO);
-                clause = make_shared<WithClauseAST>();
-                clause->name = name->getText();
-                clause->type = type->getText();
-                parseStatementSeq(clause->stmts);
-                with->clauses.push_back(clause);
+                parseWithGuard(with->clauses);
             }
             if (peek(Token::ELSE)) {
                 pop(Token::ELSE);
@@ -469,6 +521,16 @@ void Parser::parseStatementSeq(vector<shared_ptr<StatementAST>> &stmts) {
         }
         pop(Token::SEMICOLON);
     }
+}
+
+void Parser::parseWithGuard(vector<shared_ptr<WithClauseAST>> &clauses) {
+    auto clause = make_shared<WithClauseAST>();
+    clause->name = parseQualIdent();
+    pop(Token::COLON);
+    clause->type = parseQualIdent();
+    pop(Token::DO);
+    parseStatementSeq(clause->stmts);
+    clauses.push_back(clause);
 }
 
 void Parser::parseCase(vector<shared_ptr<CaseClauseAST>> &clauses) {
@@ -508,7 +570,7 @@ shared_ptr<ReceiverAST> Parser::parseReceiver() {
     receiver->start = pop(Token::LPAREN);
     if (peek(Token::VAR)) {
         pop(Token::VAR);
-        receiver->isVar = true;
+        receiver->byRef = true;
     }
     auto name = pop(Token::IDENTIFIER);
     pop(Token::COLON);
@@ -519,19 +581,34 @@ shared_ptr<ReceiverAST> Parser::parseReceiver() {
     return receiver;
 }
 
-void Parser::parseFormalParams() {
+shared_ptr<QualIdentAST> Parser::parseFormalParams(vector<shared_ptr<VarDeclAST>> &params) {
     pop(Token::LPAREN);
     while (!peek(Token::RPAREN)) {
+        bool byRef = false;
+        vector<string> names;
         if (peek(Token::VAR)) {
             pop(Token::VAR);
+            byRef = true;
         }
-        pop(Token::IDENTIFIER);
+        auto iden = pop(Token::IDENTIFIER);
+        names.push_back(iden->getText());
         while(peek(Token::COMMA)) {
             pop(Token::COMMA);
-            pop(Token::IDENTIFIER);
+            iden = pop(Token::IDENTIFIER);
+            names.push_back(iden->getText());
         }
         pop(Token::COLON);
-        parseType();
+        auto type = parseType();
+        for (string name : names) {
+            auto param = make_shared<VarDeclAST>();
+            param->start = iden;
+            param->end = peek();
+            param->ident = make_shared<IdentDefAST>(name);
+            param->type = type;
+            param->byRef = byRef;
+            newSymbol(name, param);
+            params.push_back(param);
+        }
         if (peek(Token::SEMICOLON)) {
             pop(Token::SEMICOLON);
         }
@@ -539,18 +616,25 @@ void Parser::parseFormalParams() {
     pop(Token::RPAREN);
     if (peek(Token::COLON)) {
         pop(Token::COLON);
-        pop(Token::IDENTIFIER);
+        return parseQualIdent();
+    } else {
+        return nullptr;
     }
 }
 
 shared_ptr<TypeAST> Parser::parseType() {
-    auto type = make_shared<TypeAST>();
     auto keyword = pop({ Token::IDENTIFIER, Token::ARRAY, Token::RECORD, Token::POINTER, Token::PROCEDURE });
-    type->start = keyword;
     switch(keyword->getKind()) {
-    case Token::IDENTIFIER:
-        break;
-    case Token::ARRAY:
+    case Token::IDENTIFIER: {
+        push(keyword);
+        auto type = make_shared<BasicTypeAST>(parseQualIdent());
+        type->start = keyword;
+        type->end = keyword;
+        return type;
+    }
+    case Token::ARRAY: {
+        auto type = make_shared<ArrayTypeAST>();
+        type->start = keyword;
         if (!peek(Token::OF)) {
             parseConstExpr();
             while (peek(Token::COMMA)) {
@@ -559,12 +643,16 @@ shared_ptr<TypeAST> Parser::parseType() {
             }
         }
         pop(Token::OF);
-        parseType();
-        break;
-    case Token::RECORD:
+        type->arrayOf = parseType();
+        type->end = peek();
+        return type;
+    }
+    case Token::RECORD: {
+        auto type = make_shared<RecordTypeAST>();
+        type->start = keyword;
         if (peek(Token::LPAREN)) {
             pop(Token::LPAREN);
-            pop(Token::IDENTIFIER);
+            parseQualIdent();
             pop(Token::RPAREN);
         }
         while (1) {
@@ -584,20 +672,28 @@ shared_ptr<TypeAST> Parser::parseType() {
                 throw ParserException("Expected ';' or 'END' after RECORD FieldList, got " + tok->getText(), tok->getLocation());
             }
         }
-        pop(Token::END);
-        break;
-    case Token::POINTER:
-        pop(Token::TO);
-        parseType();
-        break;
-    case Token::PROCEDURE:
-        parseFormalParams();
-        break;
-    default:
-        break;
+        type->end = pop(Token::END);
+        return type;
     }
-    type->end = peek();
-    return type;
+    case Token::POINTER: {
+        auto type = make_shared<PointerTypeAST>();
+        type->start = keyword;
+        pop(Token::TO);
+        type->pointee = parseType();
+        type->end = peek();
+        return type;
+    }
+    case Token::PROCEDURE: {
+        auto type = make_shared<ProcedureTypeAST>();
+        type->start = keyword;
+        type->ret = parseFormalParams(type->params);
+        type->end = peek();
+        return type;
+    }
+    default:
+        return nullptr;
+    }
+    return nullptr;
 }
 
 shared_ptr<ExprAST> Parser::parseConstExpr() {
@@ -746,7 +842,7 @@ shared_ptr<ExprAST> Parser::parseFactor() {
         }
         pop(Token::RCURLY);
         break;
-  case Token::LPAREN: {
+    case Token::LPAREN: {
         auto start = pop(Token::LPAREN);
         auto expr = parseExpr();
         expr->start = start;
@@ -765,12 +861,10 @@ shared_ptr<ExprAST> Parser::parseFactor() {
 }
 
 shared_ptr<DesignatorAST> Parser::parseDesignator() {
-    auto name = pop(Token::IDENTIFIER);
-    auto des = make_shared<DesignatorAST>(name->getText());
-    if (peek(Token::DOT)) {
-        pop(Token::DOT);
-        pop(Token::IDENTIFIER);
-    }
+    auto start = peek();
+    auto qid = parseQualIdent();
+    auto des = make_shared<DesignatorAST>(qid);
+    des->start = start;
     while (peek({ Token::DOT, Token::LSQUARE, Token::CARET /*, Token::LPAREN*/ })) {
         auto tok = pop({ Token::DOT, Token::LSQUARE, Token::CARET/*, Token::LPAREN*/ });
         switch(tok->getKind()) {
@@ -813,6 +907,7 @@ shared_ptr<IdentDefAST> Parser::parseIdentDef() {
     auto next  = peek(Token::OPERATOR);
     Export exprt = Export::NO;
     if (next) {
+        pop(Token::OPERATOR);
         if (next->getText() == "*") {
             exprt = Export::YES;
         } else if (next->getText() == "-") {
@@ -822,6 +917,24 @@ shared_ptr<IdentDefAST> Parser::parseIdentDef() {
         }
     }
     return make_shared<IdentDefAST>(ident->getText(), exprt);
+}
+
+shared_ptr<QualIdentAST> Parser::parseQualIdent() {
+    auto qid = make_shared<QualIdentAST>();
+    qid->start = peek();
+    shared_ptr<Token> module = nullptr;
+    shared_ptr<Token> name = pop(Token::IDENTIFIER);
+    if (peek(Token::DOT)) {
+        pop(Token::DOT);
+        module = name;
+        name = pop(Token::IDENTIFIER);
+    }
+    qid->end = name;
+    qid->name = name->getText();
+    if (module) {
+        qid->module = module->getText();
+    }
+    return qid;
 }
 
 int Parser::getPrecedence(shared_ptr<Token> op) {
