@@ -159,13 +159,60 @@ shared_ptr<Token> Lexer::nextToken() {
         return make_shared<Token>(Token::IDENTIFIER, loc, text);
     } else if (isdigit(lastChar)) {
         string numStr;
-        bool hasDot;
-        do {
-            if (lastChar == '.') hasDot = true;
-            numStr.push_back(lastChar);
-            take();
-        } while (isdigit(lastChar) || (lastChar == '.' && !hasDot));
-        if (hasDot) {
+        bool isReal = false, isHex = false, isScaled = false, isSigned = false, isDone = false;
+        while (!isDone) {
+            switch (lastChar) {
+            case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
+                numStr.push_back(lastChar);
+                take();
+                break;
+            case 'A': case 'B': case 'C': case 'F':
+                isHex = true;
+                numStr.push_back(lastChar);
+                take();
+                break;
+            case 'D': case 'E':
+                if (isScaled) {
+                    isDone = true;
+                } else if (isReal) {
+                    isScaled = true;
+                    numStr.push_back(lastChar);
+                    take();
+                } else {
+                    isHex = true;
+                    numStr.push_back(lastChar);
+                    take();
+                }
+                break;
+            case '+': case '-':
+                if (isSigned) {
+                    isDone = true;
+                } else if (isScaled) {
+                    isSigned = true;
+                    numStr.push_back(lastChar);
+                    take();
+                }
+                break;
+            case '.':
+                if (isReal) {
+                    isDone = true;
+                } else {
+                    isReal = true;
+                    numStr.push_back(lastChar);
+                    take();
+                }
+                break;
+            case 'H':
+                isHex = true;
+                isDone = true;
+                numStr.push_back(lastChar);
+                take();
+                break;
+            default:
+                isDone = true;
+            }
+        }
+        if (isReal) {
             return make_shared<Token>(Token::FLOATLITERAL, loc, stof(numStr.c_str()));
         } else {
             return make_shared<Token>(Token::INTLITERAL, loc, stoi(numStr.c_str()));
