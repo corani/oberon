@@ -3,6 +3,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <stack>
 #include <memory>
 #include <exception>
 #include "lexer.h"
@@ -15,10 +16,10 @@ using std::string;
 
 class ParserException : public std::exception {
 public:
-    ParserException(std::string msg, Location loc) : msg(msg), loc(loc) {}
+    ParserException(string msg, Location loc) : msg(msg), loc(loc) {}
     virtual const char* what() const noexcept;
 private:
-    std::string msg;
+    string msg;
     Location loc;
 };
 
@@ -27,13 +28,15 @@ public:
     Parser();
     shared_ptr<ModuleAST> parseModule(shared_ptr<Lexer> lexer);
 private:
-    shared_ptr<Token> accept();
-    shared_ptr<Token> accept(Token::Kind kind);
-    shared_ptr<Token> accept(std::vector<Token::Kind> kinds);
+    void push(shared_ptr<Token> tok);
 
-    shared_ptr<Token> expect();
-    shared_ptr<Token> expect(Token::Kind kind);
-    shared_ptr<Token> expect(std::vector<Token::Kind> kinds);
+    shared_ptr<Token> pop();
+    shared_ptr<Token> pop(Token::Kind kind);
+    shared_ptr<Token> pop(std::vector<Token::Kind> kinds);
+
+    shared_ptr<Token> peek();
+    shared_ptr<Token> peek(Token::Kind kind);
+    shared_ptr<Token> peek(std::vector<Token::Kind> kinds);
 
     void parseImport(vector<pair<string, string>> &imports);
     void parseTypeDecl   (vector<shared_ptr<DeclAST>> &decls);
@@ -57,7 +60,8 @@ private:
 
     int getPrecedence(shared_ptr<Token> op);
 private:
-    std::shared_ptr<Lexer> lexer;
-    std::shared_ptr<Token> currentToken;
+    shared_ptr<Lexer> lexer;
+    shared_ptr<Token> currentToken;
+    std::stack<shared_ptr<Token>> tokens;
     std::map<std::string, int> precedence;
 };
