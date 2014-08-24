@@ -6,7 +6,11 @@ VAR input : INTEGER;
 TYPE PointRec = RECORD
                   x, y: INTEGER
                 END;
+     Point3Rec= RECORD (PointRec)
+                  z: INTEGER
+                END;
      Point    = POINTER TO PointRec;
+     Point3   = POINTER TO Point3Rec;
 
 EXTERN INC(x: INTEGER)
 EXTERN DEC(x: INTEGER)

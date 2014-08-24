@@ -113,6 +113,10 @@ public:
 class RecordTypeAST : public TypeAST {
 public:
     virtual void print(ostream &out, string pre = "") const;
+public:
+    shared_ptr<QualIdentAST> base;
+    shared_ptr<TypeAST> baseType;
+    vector<pair<shared_ptr<IdentDefAST>, shared_ptr<TypeAST>>> fields;
 };
 
 class PointerTypeAST : public TypeAST {

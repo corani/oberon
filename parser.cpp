@@ -652,17 +652,26 @@ shared_ptr<TypeAST> Parser::parseType() {
         type->start = keyword;
         if (peek(Token::LPAREN)) {
             pop(Token::LPAREN);
-            parseQualIdent();
+            type->base = parseQualIdent();
             pop(Token::RPAREN);
+            auto base = findSymbol(type->base->name);
+            TypeDeclAST *decl = dynamic_cast<TypeDeclAST *>(base.get());
+            if (decl) {
+                type->baseType = decl->type;
+            }
         }
         while (1) {
-            parseIdentDef();
+            vector<shared_ptr<IdentDefAST>> idents;
+            idents.push_back(parseIdentDef());
             while (peek(Token::COMMA)) {
                 pop(Token::COMMA);
-                parseIdentDef();
+                idents.push_back(parseIdentDef());
             }
             pop(Token::COLON);
-            parseType();
+            auto ft = parseType();
+            for (auto ident : idents) {
+                type->fields.push_back(make_pair(ident, ft));
+            }
             if (peek(Token::SEMICOLON)) {
                 pop(Token::SEMICOLON);
             } else if (peek(Token::END)) {

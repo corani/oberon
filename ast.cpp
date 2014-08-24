@@ -92,6 +92,7 @@ void ExternDeclAST::print(ostream &out, string pre) const {
 
 void TypeDeclAST::print(ostream &out, string pre) const {
     out << pre << "* TypeDecl[" << ident->name << "] src: " << start->getLocation() << " - " << end->getLocation() << endl;
+    type->print(out, "|  |  ");
 }
 
 void TypeAST::print(ostream &out, string pre) const {
@@ -110,6 +111,15 @@ void ArrayTypeAST::print(ostream &out, string pre) const {
 
 void RecordTypeAST::print(ostream &out, string pre) const {
     out << pre << "* RecordType" << endl;
+    if (base) {
+        out << pre << "|  +- Base:" << endl;
+        base->print(out, pre + "|  |  ");
+    }
+    out << pre << "|  +- Fields:" << endl;
+    for (auto field : fields) {
+        out << pre << "|  |  " << field.first->name << " = " << endl;;
+        field.second->print(out, pre + "|  |  |  ");
+    }
 }
 
 void PointerTypeAST::print(ostream &out, string pre) const {
