@@ -205,7 +205,6 @@ shared_ptr<Token> Lexer::nextToken() {
             case 'H':
                 isHex = true;
                 isDone = true;
-                numStr.push_back(lastChar);
                 take();
                 break;
             case 'X':
@@ -225,6 +224,8 @@ shared_ptr<Token> Lexer::nextToken() {
             return make_shared<Token>(Token::FLOATLITERAL, loc, stof(numStr.c_str()));
         } else if (isChar) {
             return make_shared<Token>(Token::CHARLITERAL, loc, stoi(numStr.c_str(), 0, 16));
+        } else if (isHex) {
+            return make_shared<Token>(Token::INTLITERAL, loc, stoi(numStr.c_str(), 0, 16));
         } else {
             return make_shared<Token>(Token::INTLITERAL, loc, stoi(numStr.c_str()));
         }
