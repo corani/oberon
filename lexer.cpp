@@ -223,22 +223,37 @@ shared_ptr<Token> Lexer::nextToken() {
                     return make_shared<Token>(Token::STRLITERAL, loc, str);
                 }
             }
+            case '\'': {
+                take(); // open '
+                string str;
+                while (lastChar != '\'') {
+                    str.push_back(lastChar);
+                    take();
+                }
+                take(); // close '
+                if (str.length() == 1) {
+                    return make_shared<Token>(Token::CHARLITERAL, loc, str[0]);
+                } else {
+                    return make_shared<Token>(Token::STRLITERAL, loc, str);
+                }
+            }
             case '(': {
                 take(); // open (
                 // it's a comment
                 if (lastChar == '*') {
-                    bool star = false;
+                    char beforeLast = 0;
+                    int depth = 1;
                     while(1) {
                         take();
-                        if (lastChar == '*') {
-                            star = true;
-                        } else if (star && lastChar == ')') {
-                            break;
-                        } else {
-                            star = false;
+                        if (beforeLast == '(' && lastChar == '*') {
+                            depth++;
+                        } else if (beforeLast == '*' && lastChar == ')') {
+                            if (depth == 1) break;
+                            depth--;
                         }
+                        beforeLast = lastChar;
                     }
-                    take();
+                    take(); // close )
                     return nextToken();
                 } else {
                     return make_shared<Token>(Token::LPAREN, loc);
