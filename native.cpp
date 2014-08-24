@@ -1,16 +1,5 @@
 extern "C" {
     // FUNTIONS
-    int _ABS_I(int v) {
-        return (v > 0 ? v : -v);
-    }
-
-    double _ABS_F(double v) {
-        return (v > 0 ? v : -v);
-    }
-
-    bool _ODD(int v) {
-        return (v % 2) == 1;
-    }
 
     // Arithmetic shift by n
     int _ASH(int v, int n) {
@@ -33,12 +22,5 @@ extern "C" {
     }
 
     // PROCEDURES
-    void _INC(int &v, int x = 1) {
-        v += x;
-    }
-
-    void _DEC(int &v, int x = 1) {
-        v -= x;
-    }
 
 }
