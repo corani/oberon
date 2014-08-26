@@ -1,303 +1,161 @@
 #include "ast.h"
+#include "visitor.h"
 
 using namespace std;
 
-void ModuleAST::print(ostream &out, string pre) const {
-    out << pre << "* Module[" << name << "] src: " << start->getLocation() << " - " << end->getLocation() << endl;
-    if (!imports.empty()) {
-        out << pre << "+-Imports: ";
-        bool first = true;
-        for (auto item : imports) {
-            if (!first) out << ", ";
-            out << item.first;
-            if (item.second != "") {
-                out << " := " << item.second;
-            }
-            first = false;
-        }
-        out << endl;
-    }
-    if (!decls.empty()) {
-        out << pre << "+-Declarations:" << endl;
-        for (auto decl : decls) {
-            decl->print(out, pre + "|  ");
-        }
-    }
-    if (!stmts.empty()) {
-        out << pre << "+-Statements:" << endl;
-
-        for (auto stmt : stmts) {
-            stmt->print(out, pre + "|  ");
-        }
-    }
-    out << pre << "= Module[" << name << "]" << endl;
+void ModuleAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitModule(this, ctx);
 }
 
-void ProcDeclAST::print(ostream &out, string pre) const {
-    out << pre << "* ProcDecl[" << ident->name << "] src: " << start->getLocation() << " - " << end->getLocation() << endl;
-    if (ret) {
-        out << pre << "|  +- Return Type:" << endl;
-        ret->print(out, pre + "|  |  ");
-    }
-    if (!params.empty()) {
-        out << pre << "|  +- Params:" << endl;
-        for (auto param : params) {
-            param->print(out, pre + "|  |  ");
-        }
-    }
-    if (!decls.empty()) {
-        out << pre << "|  +- Declarations:" << endl;
-        for (auto decl : decls) {
-            decl->print(out, pre + "|  |  ");
-        }
-    }
-    if (!stmts.empty()) {
-        out << pre << "|  +- Statements:" << endl;
-        for (auto stmt : stmts) {
-            stmt->print(out, pre + "|  |  ");
-        }
-    }
-    out << pre << "|  = ProcDecl[" << ident->name << "]" << endl;
+void ProcDeclAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitProcDecl(this, ctx);
 }
 
-void ForwardDeclAST::print(ostream &out, string pre) const {
-    out << pre << "* ForwardDecl[" << ident->name << "]" << endl;
-    if (ret) {
-        out << pre << "|  +- Return Type:" << endl;
-        ret->print(out, pre + "|  |  ");
-    }
-    if (!params.empty()) {
-        out << pre << "|  +- Params:" << endl;
-        for (auto param : params) {
-            param->print(out, pre + "|  |  ");
-        }
-    }
-    out << pre << "|  = ForwardDecl[" << ident->name << "]" << endl;
+void ForwardDeclAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitForwardDecl(this, ctx);
 }
 
-void ExternDeclAST::print(ostream &out, string pre) const {
-    out << pre << "* ExternDecl[" << ident->name << "]" << endl;
-    if (ret) {
-        out << pre << "|  +- Return Type:" << endl;
-        ret->print(out, pre + "|  |  ");
-    }
-    if (!params.empty()) {
-        out << pre << "|  +- Params:" << endl;
-        for (auto param : params) {
-            param->print(out, pre + "|  |  ");
-        }
-    }
-    out << pre << "|  = ExternDecl[" << ident->name << "]" << endl;
+void ExternDeclAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitExternDecl(this, ctx);
 }
 
-void TypeDeclAST::print(ostream &out, string pre) const {
-    out << pre << "* TypeDecl[" << ident->name << "] src: " << start->getLocation() << " - " << end->getLocation() << endl;
-    type->print(out, "|  |  ");
+void TypeDeclAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitTypeDecl(this, ctx);
 }
 
-void TypeAST::print(ostream &out, string pre) const {
-    out << pre << "* Type" << endl;
+void BasicTypeAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitBasicType(this, ctx);
 }
 
-void BasicTypeAST::print(ostream &out, string pre) const {
-    out << pre << "* BasicType:" << endl;
-    qid->print(out, pre + "|  ");
+void ArrayTypeAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitArrayType(this, ctx);
 }
 
-void ArrayTypeAST::print(ostream &out, string pre) const {
-    out << pre << "* ArrayType" << endl;
-    arrayOf->print(out, pre + "|  ");
+void RecordTypeAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitRecordType(this, ctx);
 }
 
-void RecordTypeAST::print(ostream &out, string pre) const {
-    out << pre << "* RecordType" << endl;
-    if (base) {
-        out << pre << "|  +- Base:" << endl;
-        base->print(out, pre + "|  |  ");
-    }
-    out << pre << "|  +- Fields:" << endl;
-    for (auto field : fields) {
-        out << pre << "|  |  " << field.first->name << " = " << endl;;
-        field.second->print(out, pre + "|  |  |  ");
-    }
+void PointerTypeAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitPointerType(this, ctx);
 }
 
-void PointerTypeAST::print(ostream &out, string pre) const {
-    out << pre << "* PointerType to:" << endl;
-    pointee->print(out, pre + "|  ");
+void ProcedureTypeAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitProcedureType(this, ctx);
 }
 
-void ProcedureTypeAST::print(ostream &out, string pre) const {
-    out << pre << "* ProcedureType" << endl;
+void VarDeclAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitVarDecl(this, ctx);
 }
 
-void ConstDeclAST::print(ostream &out, string pre) const {
-    out << pre << "* ConstDecl" << endl;
+void ConstDeclAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitConstDecl(this, ctx);
 }
 
-void VarDeclAST::print(ostream &out, string pre) const {
-    out << pre << "* VarDecl[" << ident->name << "]" << endl;
-    type->print(out, pre + "|  ");
+void ReceiverAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitReceiver(this, ctx);
 }
 
-void ReceiverAST::print(ostream &out, string pre) const {
-    out << pre << "* Receiver[" << name << ": " << type << "]" << end;
+void BoolLiteralAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitBoolLiteral(this, ctx);
 }
 
-void IfStatementAST::print(ostream &out, string pre) const {
-    out << pre << "* IfStatement" << endl;
-    out << pre << "|  +- Condition:" << endl;
-    cond->print(out, pre + "|  |  ");
-    if (!thenStmts.empty()) {
-        out << pre << "|  +- Then:" << endl;
-        for (auto stmt : thenStmts) {
-            stmt->print(out, pre + "|  |  ");
-        }
-    }
-    if (!elseStmts.empty()) {
-        out << pre << "|  +- Else:" << endl;
-        for (auto stmt : elseStmts) {
-            stmt->print(out, pre + "|  |  ");
-        }
-    }
-    out << pre << "|  = IfStatement" << endl;
+void IntLiteralAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitIntLiteral(this, ctx);
 }
 
-void CaseClauseAST::print(ostream &out, string pre) const {
-    out << pre << "* CaseClause" << endl;
+void FloatLiteralAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitFloatLiteral(this, ctx);
 }
 
-void CaseStatementAST::print(ostream &out, string pre) const {
-    out << pre << "* CaseStatement" << endl;
+void StrLiteralAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitStrLiteral(this, ctx);
 }
 
-void WhileStatementAST::print(ostream &out, string pre) const {
-    out << pre << "* WhileStatement" << endl;
-    out << pre << "|  +- Condition:" << endl;
-    cond->print(out, pre + "|  |  ");
-    out << pre << "|  +- Statements:" << endl;
-    for (auto stmt : stmts) {
-        stmt->print(out, pre + "|  |  ");
-    }
-    out << pre << "|  = WhileStatement" << endl;
+void CharLiteralAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitCharLiteral(this, ctx);
 }
 
-void RepeatStatementAST::print(ostream &out, string pre) const {
-    out << pre << "* RepeatStatement" << endl;
-    out << pre << "|  +- Statements:" << endl;
-    for (auto stmt : stmts) {
-        stmt->print(out, pre + "|  |  ");
-    }
-    out << pre << "|  +- Condition:" << endl;
-    cond->print(out, pre + "|  |  ");
-    out << pre << "|  = RepeatStatement" << endl;
+void NilLiteralAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitNilLiteral(this, ctx);
 }
 
-void ForStatementAST::print(ostream &out, string pre) const {
-    out << pre << "* ForStatement[" << iden << "]" << endl;
-    out << pre << "|  +- From:" << endl;
-    from->print(out, pre + "|  |  ");
-    out << pre << "|  +- To:" << endl;
-    to->print(out, pre + "|  |  ");
-    if (by) {
-        out << pre << "|  +- By:" << endl;
-        by->print(out, "|  |  ");
-    }
-    out << pre << "|  +- Statements:" << endl;
-    for (auto stmt : stmts) {
-        stmt->print(out, pre + "|  |  ");
-    }
-    out << pre << "|  = ForStatement" << endl;
+void IdentDefAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitIdentDef(this, ctx);
 }
 
-void LoopStatementAST::print(ostream &out, string pre) const {
-    out << pre << "* LoopStatement" << endl;
-    out << pre << "|  +- Statements:" << endl;
-    for (auto stmt : stmts) {
-        stmt->print(out, pre + "|  |  ");
-    }
-    out << pre << "|  = LoopStatement" << endl;
+void DesignatorAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitDesignator(this, ctx);
 }
 
-void WithClauseAST::print(ostream &out, string pre) const {
-    out << pre << "* WithClause" << endl;
+void UnExprAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitUnExpr(this, ctx);
 }
 
-void WithStatementAST::print(ostream &out, string pre) const {
-    out << pre << "* WithStatement" << endl;
+void BinExprAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitBinExpr(this, ctx);
 }
 
-void ExitStatementAST::print(ostream &out, string pre) const {
-    out << pre << "* ExitStatement" << endl;
+void IdentifierAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitIdentifier(this, ctx);
 }
 
-void ReturnStatementAST::print(ostream &out, string pre) const {
-    out << pre << "* ReturnStatement" << endl;
+void QualIdentAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitQualIdent(this, ctx);
 }
 
-void AssignStatementAST::print(ostream &out, string pre) const {
-    out << pre << "* AssignStatement[" << des->qid->name << "] = " << endl;
-    expr->print(out, pre + "|  ");
+void IfStatementAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitIfStatement(this, ctx);
 }
 
-void CallStatementAST::print(ostream &out, string pre) const {
-    out << pre << "* CallStatement[" << des->qid->name << "]" << endl;
-    for (auto arg : args) {
-        arg->print(out, pre + "|  ");
-    }
+void CaseClauseAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitCaseClause(this, ctx);
 }
 
-void UnExprAST::print(ostream &out, string pre) const {
-    out << pre << "* UnExpr[" << op << "]" << endl;
-    operand->print(out, pre + "|  ");
+void CaseStatementAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitCaseStatement(this, ctx);
 }
 
-void BinExprAST::print(ostream &out, string pre) const {
-    out << pre << "* BinExpr[" << op << "]" << endl;
-    lhs->print(out, pre + "L  ");
-    rhs->print(out, pre + "R  ");
+void WhileStatementAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitWhileStatement(this, ctx);
 }
 
-void IdentDefAST::print(ostream &out, string pre) const {
-    out << pre << "IdentDef[" << name << "]" << endl;
+void RepeatStatementAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitRepeatStatement(this, ctx);
 }
 
-void DesignatorAST::print(ostream &out, string pre) const {
-    out << pre << "Designator" << endl;
+void ForStatementAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitForStatement(this, ctx);
 }
 
-void NilLiteralAST::print(ostream &out, string pre) const {
-    out << pre << "NilLiteral" << endl;
+void LoopStatementAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitLoopStatement(this, ctx);
 }
 
-void CharLiteralAST::print(ostream &out, string pre) const {
-    out << pre << "CharLiteral[" << string(1, value) << "]" << endl;
+void WithClauseAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitWithClause(this, ctx);
 }
 
-void StrLiteralAST::print(ostream &out, string pre) const {
-    out << pre << "StrLiteral[" << value << "]" << endl;
+void WithStatementAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitWithStatement(this, ctx);
 }
 
-void FloatLiteralAST::print(ostream &out, string pre) const {
-    out << pre << "FloatLiteral[" << value << "]" << endl;
+void ExitStatementAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitExitStatement(this, ctx);
 }
 
-void IntLiteralAST::print(ostream &out, string pre) const {
-    out << pre << "IntLiteral[" << value << "]" << endl;
+void ReturnStatementAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitReturnStatement(this, ctx);
 }
 
-void BoolLiteralAST::print(ostream &out, string pre) const {
-    out << pre << "BoolLiteral[" << (value ? "TRUE" : "FALSE") << "]" << endl;
+void AssignStatementAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitAssignStatement(this, ctx);
 }
 
-void CallExprAST::print(ostream &out, string pre) const {
-    call->print(out, pre);
+void CallStatementAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitCallStatement(this, ctx);
 }
 
-void IdentifierAST::print(ostream &out, string pre) const {
-    out << pre << "Identifier[" << des->qid->name << "]" << endl;
+void CallExprAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitCallExpr(this, ctx);
 }
 
-void QualIdentAST::print(ostream &out, string pre) const {
-    out << pre << "* QualIdent[" << module << "." << name << "]" << endl;
-}

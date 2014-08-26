@@ -1,7 +1,7 @@
 all: obc
 
-test_parser: test/test_parser.cpp lexer.o ast.o parser.o
-	clang++ -rdynamic -ggdb -O3 --std=c++11 -I. -o test/test_parser test/test_parser.cpp lexer.o ast.o parser.o
+test_parser: test/test_parser.cpp lexer.o ast.o parser.o printer.o
+	clang++ -rdynamic -ggdb -O3 --std=c++11 -I. -o test/test_parser test/test_parser.cpp lexer.o ast.o parser.o printer.o
 
 test_lexer: test/test_lexer.cpp lexer.o
 	clang++ -rdynamic -ggdb -O3 --std=c++11 -I. -o test/test_lexer test/test_lexer.cpp lexer.o
@@ -14,6 +14,9 @@ native.bc: native.cpp
 
 parser.o: parser.cpp parser.h lexer.h ast.h
 	clang++ -ggdb --std=c++11 -c parser.cpp -o parser.o
+
+printer.o: printer.cpp printer.h visitor.h ast.h
+	clang++ -ggdb --std=c++11 -c printer.cpp -o printer.o
 
 ast.o: ast.cpp ast.h
 	clang++ -ggdb --std=c++11 -c ast.cpp -o ast.o

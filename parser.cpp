@@ -358,7 +358,6 @@ void Parser::parseStatementSeq(vector<shared_ptr<StatementAST>> &stmts) {
                     assign->end = peek();
                     stmts.push_back(assign);
                 } else {
-                    cout << var->ident->name << endl;
                     throw ParserException("Modifiable variable expected", keyword->getLocation());
                 }
             } else if (peek(Token::LPAREN)) {
@@ -578,6 +577,19 @@ shared_ptr<ReceiverAST> Parser::parseReceiver() {
     receiver->name = name->getText();
     receiver->type = type->getText();
     receiver->end = pop(Token::RPAREN);
+
+    auto var = make_shared<VarDeclAST>();
+    var->ident = make_shared<IdentDefAST>(name->getText());
+
+    auto sym = findSymbol(type->getText());
+    if (sym) {
+        auto typeDecl = dynamic_cast<TypeDeclAST *>(sym.get());
+        if (typeDecl) {
+            var->type = typeDecl->type;
+        }
+    }
+    newSymbol(name->getText(), var);
+
     return receiver;
 }
 
@@ -866,7 +878,7 @@ shared_ptr<ExprAST> Parser::parseFactor() {
     default:
         break;
     }
-    return make_shared<FactorAST>();
+    return make_shared<NilLiteralAST>();
 }
 
 shared_ptr<DesignatorAST> Parser::parseDesignator() {
