@@ -218,6 +218,13 @@ public:
     virtual void visit(Visitor *visitor, Context *ctx);
 };
 
+class SetLiteralAST : public LiteralExprAST {
+public:
+    virtual void visit(Visitor *visitor, Context *ctx);
+public:
+    vector<pair<shared_ptr<ExprAST>, shared_ptr<ExprAST>>> elements;
+};
+
 class IdentDefAST : public ExprAST {
 public:
     IdentDefAST(string name, Export export_ = Export::NO) : name(name), export_(export_) {}

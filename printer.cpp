@@ -1,9 +1,11 @@
+#include <iomanip>
 #include "printer.h"
 
 using namespace std;
 
 void Printer::visitModule(ModuleAST *node, Context *ctx) {
-    out << pre(ctx) << "* Module[" << node->name << "] src: " << node->start->getLocation() << " - " << node->end->getLocation() << endl;
+    loc(node, ctx);
+    out << "* Module[" << node->name << "]" << endl;
     if (!node->imports.empty()) {
         out << pre(ctx) << "+-Imports: ";
         bool first = true;
@@ -36,7 +38,8 @@ void Printer::visitModule(ModuleAST *node, Context *ctx) {
     out << pre(ctx) << "= Module[" << node->name << "]" << endl;
 }
 void Printer::visitProcDecl(ProcDeclAST *node, Context *ctx) {
-    out << pre(ctx) << "* ProcDecl[" << node->ident->name << "] src: " << node->start->getLocation() << " - " << node->end->getLocation() << endl;
+    loc(node, ctx);
+    out << "* ProcDecl[" << node->ident->name << "]" << endl;
     if (node->ret) {
         out << pre(ctx) << "|  +- Return Type:" << endl;
         push(ctx, "|  |  ");
@@ -70,7 +73,8 @@ void Printer::visitProcDecl(ProcDeclAST *node, Context *ctx) {
     out << pre(ctx) << "|  = ProcDecl[" << node->ident->name << "]" << endl;
 }
 void Printer::visitForwardDecl(ForwardDeclAST *node, Context *ctx) {
-    out << pre(ctx) << "* ForwardDecl[" << node->ident->name << "]" << endl;
+    loc(node, ctx);
+    out << "* ForwardDecl[" << node->ident->name << "]" << endl;
     if (node->ret) {
         out << pre(ctx) << "|  +- Return Type:" << endl;
         push(ctx, "|  |  ");
@@ -88,7 +92,8 @@ void Printer::visitForwardDecl(ForwardDeclAST *node, Context *ctx) {
     out << pre(ctx) << "|  = ForwardDecl[" << node->ident->name << "]" << endl;
 }
 void Printer::visitExternDecl(ExternDeclAST *node, Context *ctx) {
-    out << pre(ctx) << "* ExternDecl[" << node->ident->name << "]" << endl;
+    loc(node, ctx);
+    out << "* ExternDecl[" << node->ident->name << "]" << endl;
     if (node->ret) {
         out << pre(ctx) << "|  +- Return Type:" << endl;
         push(ctx, "|  |  ");
@@ -106,25 +111,29 @@ void Printer::visitExternDecl(ExternDeclAST *node, Context *ctx) {
     out << pre(ctx) << "|  = ExternDecl[" << node->ident->name << "]" << endl;
 }
 void Printer::visitTypeDecl(TypeDeclAST *node, Context *ctx) {
-    out << pre(ctx) << "* TypeDecl[" << node->ident->name << "] src: " << node->start->getLocation() << " - " << node->end->getLocation() << endl;
+    loc(node, ctx);
+    out << "* TypeDecl[" << node->ident->name << "] src: " << node->start->getLocation() << " - " << node->end->getLocation() << endl;
     push(ctx, "|  |  ");
     node->type->visit(this, ctx);
     pop(ctx);
 }
 void Printer::visitBasicType(BasicTypeAST *node, Context *ctx) {
-    out << pre(ctx) << "* BasicType:" << endl;
+    loc(node, ctx);
+    out << "* BasicType:" << endl;
     push(ctx, "|  ");
     node->qid->visit(this, ctx);
     pop(ctx);
 }
 void Printer::visitArrayType(ArrayTypeAST *node, Context *ctx) {
-    out << pre(ctx) << "* ArrayType" << endl;
+    loc(node, ctx);
+    out << "* ArrayType" << endl;
     push(ctx, "|  ");
     node->arrayOf->visit(this, ctx);
     pop(ctx);
 }
 void Printer::visitRecordType(RecordTypeAST *node, Context *ctx) {
-    out << pre(ctx) << "* RecordType" << endl;
+    loc(node, ctx);
+    out << "* RecordType" << endl;
     push(ctx, "|  ");
     if (node->base) {
         out << pre(ctx) << "+- Base:" << endl;
@@ -144,13 +153,15 @@ void Printer::visitRecordType(RecordTypeAST *node, Context *ctx) {
     pop(ctx);
 }
 void Printer::visitPointerType(PointerTypeAST *node, Context *ctx) {
-    out << pre(ctx) << "* PointerType to:" << endl;
+    loc(node, ctx);
+    out << "* PointerType to:" << endl;
     push(ctx, "|  ");
     node->pointee->visit(this, ctx);
     pop(ctx);
 }
 void Printer::visitProcedureType(ProcedureTypeAST *node, Context *ctx) {
-    out << pre(ctx) << "* ProcedureType" << endl;
+    loc(node, ctx);
+    out << "* ProcedureType" << endl;
     push(ctx, "|  ");
     out << pre(ctx) << "+- Returns: " << node->ret->name << endl;
     out << pre(ctx) << "+- Params:" << endl;
@@ -162,43 +173,76 @@ void Printer::visitProcedureType(ProcedureTypeAST *node, Context *ctx) {
     pop(ctx);
 }
 void Printer::visitVarDecl(VarDeclAST *node, Context *ctx) {
-    out << pre(ctx) << "* VarDecl[" << node->ident->name << "]" << endl;
+    loc(node, ctx);
+    out << "* VarDecl[" << node->ident->name << "]" << endl;
     push(ctx, "|  ");
     node->type->visit(this, ctx);
     pop(ctx);
 }
 void Printer::visitConstDecl(ConstDeclAST *node, Context *ctx) {
-    out << pre(ctx) << "* ConstDecl[" << node->ident->name << "]" << endl;
+    loc(node, ctx);
+    out << "* ConstDecl[" << node->ident->name << "]" << endl;
     push(ctx, "|  ");
     node->expr->visit(this, ctx);
     pop(ctx);
 }
 void Printer::visitReceiver(ReceiverAST *node, Context *ctx) {
-    out << pre(ctx) << "* Receiver[" << node->name << ": " << node->type << "]" << endl;
+    loc(node, ctx);
+    out << "* Receiver[" << node->name << ": " << node->type << "]" << endl;
 }
 void Printer::visitExpr(ExprAST *node, Context *ctx) {
-    out << pre(ctx) << "Expr" << endl;
+    loc(node, ctx);
+    out << "Expr" << endl;
 }
 void Printer::visitBoolLiteral(BoolLiteralAST *node, Context *ctx) {
-    out << pre(ctx) << "BoolLiteral[" << (node->value ? "TRUE" : "FALSE") << "]" << endl;
+    loc(node, ctx);
+    out << "BoolLiteral[" << (node->value ? "TRUE" : "FALSE") << "]" << endl;
 }
 void Printer::visitIntLiteral(IntLiteralAST *node, Context *ctx) {
-    out << pre(ctx) << "IntLiteral[" << node->value << "]" << endl;
+    loc(node, ctx);
+    out << "IntLiteral[" << node->value << "]" << endl;
 }
 void Printer::visitFloatLiteral(FloatLiteralAST *node, Context *ctx) {
-    out << pre(ctx) << "FloatLiteral[" << node->value << "]" << endl;
+    loc(node, ctx);
+    out << "FloatLiteral[" << node->value << "]" << endl;
 }
 void Printer::visitStrLiteral(StrLiteralAST *node, Context *ctx) {
-    out << pre(ctx) << "StrLiteral[" << node->value << "]" << endl;
+    loc(node, ctx);
+    out << "StrLiteral[" << node->value << "]" << endl;
 }
 void Printer::visitCharLiteral(CharLiteralAST *node, Context *ctx) {
-    out << pre(ctx) << "CharLiteral[" << string(1, node->value) << "]" << endl;
+    loc(node, ctx);
+    out << "CharLiteral[" << string(1, node->value) << "]" << endl;
 }
 void Printer::visitNilLiteral(NilLiteralAST *node, Context *ctx) {
-    out << pre(ctx) << "NilLiteral" << endl;
+    loc(node, ctx);
+    out << "NilLiteral" << endl;
+}
+void Printer::visitSetLiteral(SetLiteralAST *node, Context *ctx) {
+    loc(node, ctx);
+    out << "SetLiteral" << endl;
+    push(ctx, "|  ");
+    for (auto element : node->elements) {
+        if (element.second) {
+            out << "+- Range:" << endl;
+            push(ctx, "0  ");
+            element.first->visit(this, ctx);
+            pop(ctx);
+            push(ctx, "1  ");
+            element.second->visit(this, ctx);
+            pop(ctx);
+        } else {
+            out << "+- Element:" << endl;
+            push(ctx, "|  ");
+            element.first->visit(this, ctx);
+            pop(ctx);
+        }
+    }
+    pop(ctx);
 }
 void Printer::visitIdentDef(IdentDefAST *node, Context *ctx) {
-    out << pre(ctx) << "IdentDef[" << node->name;
+    loc(node, ctx);
+    out << "IdentDef[" << node->name;
     switch(node->export_) {
         case Export::YES:
             out << "*";
@@ -212,19 +256,22 @@ void Printer::visitIdentDef(IdentDefAST *node, Context *ctx) {
     out << "]" << endl;
 }
 void Printer::visitDesignator(DesignatorAST *node, Context *ctx) {
-    out << pre(ctx) << "Designator" << endl;
+    loc(node, ctx);
+    out << "Designator" << endl;
     push(ctx, "|  ");
     node->qid->visit(this, ctx);
     pop(ctx);
 }
 void Printer::visitUnExpr(UnExprAST *node, Context *ctx) {
-    out << pre(ctx) << "* UnExpr[" << node->op << "]" << endl;
+    loc(node, ctx);
+    out << "* UnExpr[" << node->op << "]" << endl;
     push(ctx, "|  ");
     node->operand->visit(this, ctx);
     pop(ctx);
 }
 void Printer::visitBinExpr(BinExprAST *node, Context *ctx) {
-    out << pre(ctx) << "* BinExpr[" << node->op << "]" << endl;
+    loc(node, ctx);
+    out << "* BinExpr[" << node->op << "]" << endl;
     push(ctx, "L  ");
     node->lhs->visit(this, ctx);
     pop(ctx);
@@ -233,16 +280,19 @@ void Printer::visitBinExpr(BinExprAST *node, Context *ctx) {
     pop(ctx);
 }
 void Printer::visitIdentifier(IdentifierAST *node, Context *ctx) {
-    out << pre(ctx) << "Identifier:" << endl;
+    loc(node, ctx);
+    out << "Identifier:" << endl;
     push(ctx, "|  ");
     node->des->visit(this, ctx);
     pop(ctx);
 }
 void Printer::visitQualIdent(QualIdentAST *node, Context *ctx) {
-    out << pre(ctx) << "* QualIdent[" << node->module << "." << node->name << "]" << endl;
+    loc(node, ctx);
+    out << "* QualIdent[" << node->module << "." << node->name << "]" << endl;
 }
 void Printer::visitIfStatement(IfStatementAST *node, Context *ctx) {
-    out << pre(ctx) << "* IfStatement" << endl;
+    loc(node, ctx);
+    out << "* IfStatement" << endl;
     push(ctx, "|  ");
     out << pre(ctx) << "+- Condition:" << endl;
     push(ctx, "|  ");
@@ -268,7 +318,8 @@ void Printer::visitIfStatement(IfStatementAST *node, Context *ctx) {
     pop(ctx);
 }
 void Printer::visitCaseStatement(CaseStatementAST *node, Context *ctx) {
-    out << pre(ctx) << "* CaseStatement" << endl;
+    loc(node, ctx);
+    out << "* CaseStatement" << endl;
     push(ctx, "|  ");
     out << pre(ctx) << "+- Condition:" << endl;
     push(ctx, "|  ");
@@ -289,7 +340,8 @@ void Printer::visitCaseStatement(CaseStatementAST *node, Context *ctx) {
     pop(ctx);
 }
 void Printer::visitCaseClause(CaseClauseAST *node, Context *ctx) {
-    out << pre(ctx) << "+- CaseClause: " << endl;
+    loc(node, ctx);
+    out << "+- CaseClause: " << endl;
     push(ctx, "|  ");
     out << pre(ctx) << "+- Ranges:" << endl;
     push(ctx, "|  ");
@@ -313,7 +365,8 @@ void Printer::visitCaseClause(CaseClauseAST *node, Context *ctx) {
     pop(ctx);
 }
 void Printer::visitWhileStatement(WhileStatementAST *node, Context *ctx) {
-    out << pre(ctx) << "* WhileStatement" << endl;
+    loc(node, ctx);
+    out << "* WhileStatement" << endl;
     push(ctx, "|  ");
     out << pre(ctx) << "+- Condition:" << endl;
     push(ctx, "|  ");
@@ -329,7 +382,8 @@ void Printer::visitWhileStatement(WhileStatementAST *node, Context *ctx) {
     pop(ctx);
 }
 void Printer::visitRepeatStatement(RepeatStatementAST *node, Context *ctx) {
-    out << pre(ctx) << "* RepeatStatement" << endl;
+    loc(node, ctx);
+    out << "* RepeatStatement" << endl;
     push(ctx, "|  ");
     out << pre(ctx) << "+- Statements:" << endl;
     push(ctx, "|  ");
@@ -345,7 +399,8 @@ void Printer::visitRepeatStatement(RepeatStatementAST *node, Context *ctx) {
     pop(ctx);
 }
 void Printer::visitForStatement(ForStatementAST *node, Context *ctx) {
-    out << pre(ctx) << "* ForStatement[" << node->iden << "]" << endl;
+    loc(node, ctx);
+    out << "* ForStatement[" << node->iden << "]" << endl;
     push(ctx, "|  ");
     out << pre(ctx) << "+- From:" << endl;
     push(ctx, "|  ");
@@ -371,7 +426,8 @@ void Printer::visitForStatement(ForStatementAST *node, Context *ctx) {
     pop(ctx);
 }
 void Printer::visitLoopStatement(LoopStatementAST *node, Context *ctx) {
-    out << pre(ctx) << "* LoopStatement" << endl;
+    loc(node, ctx);
+    out << "* LoopStatement" << endl;
     push(ctx, "|  ");
     out << pre(ctx) << "+- Statements:" << endl;
     push(ctx, "|  ");
@@ -383,7 +439,8 @@ void Printer::visitLoopStatement(LoopStatementAST *node, Context *ctx) {
     pop(ctx);
 }
 void Printer::visitWithStatement(WithStatementAST *node, Context *ctx) {
-    out << pre(ctx) << "* WithStatement" << endl;
+    loc(node, ctx);
+    out << "* WithStatement" << endl;
     push(ctx, "|  ");
     if (!node->elseStmts.empty()) {
         out << pre(ctx) << "+- Else:" << endl;
@@ -396,7 +453,8 @@ void Printer::visitWithStatement(WithStatementAST *node, Context *ctx) {
     pop(ctx);
 }
 void Printer::visitWithClause(WithClauseAST *node, Context *ctx) {
-    out << pre(ctx) << "+- WithClause" << endl;
+    loc(node, ctx);
+    out << "+- WithClause" << endl;
     push(ctx, "|  ");
     out << pre(ctx) << "+- Name:" << endl;
     push(ctx, "|  ");
@@ -415,10 +473,12 @@ void Printer::visitWithClause(WithClauseAST *node, Context *ctx) {
     pop(ctx);
 }
 void Printer::visitExitStatement(ExitStatementAST *node, Context *ctx) {
-    out << pre(ctx) << "* ExitStatement" << endl;
+    loc(node, ctx);
+    out << "* ExitStatement" << endl;
 }
 void Printer::visitReturnStatement(ReturnStatementAST *node, Context *ctx) {
-    out << pre(ctx) << "* ReturnStatement" << endl;
+    loc(node, ctx);
+    out << "* ReturnStatement" << endl;
     if (node->expr) {
         push(ctx, "|  ");
         node->expr->visit(this, ctx);
@@ -426,7 +486,8 @@ void Printer::visitReturnStatement(ReturnStatementAST *node, Context *ctx) {
     }
 }
 void Printer::visitAssignStatement(AssignStatementAST *node, Context *ctx) {
-    out << pre(ctx) << "* AssignStatement:" << endl;
+    loc(node, ctx);
+    out << "* AssignStatement:" << endl;
     push(ctx, "|  ");
     push(ctx, "L  ");
     node->des->visit(this, ctx);
@@ -437,7 +498,8 @@ void Printer::visitAssignStatement(AssignStatementAST *node, Context *ctx) {
     pop(ctx);
 }
 void Printer::visitCallStatement(CallStatementAST *node, Context *ctx) {
-    out << pre(ctx) << "* CallStatement" << endl;
+    loc(node, ctx);
+    out << "* CallStatement" << endl;
     push(ctx, "|  ");
     out << pre(ctx) << "+- Method:" << endl;
     push(ctx, "|  ");
@@ -458,12 +520,23 @@ void Printer::visitCallExpr(CallExprAST *node, Context *ctx) {
     node->call->visit(this, ctx);
 }
 
-string Printer::pre(Context *ctx) {
+void Printer::loc(BaseAST *node, Context *ctx) {
+    if (node->start) {
+        out << node->start->getLocation();
+    } else {
+        out << "       ";
+    }
+    out << pre(ctx, false);
+}
+
+string Printer::pre(Context *ctx, bool needPad) {
+    string pad = (needPad ? "       " : "");
+    pad += " -> ";
     PrinterContext *pc = dynamic_cast<PrinterContext*>(ctx);
     if (pc) {
-        return pc->pre;
+        return pad + pc->pre;
     } else {
-        return "";
+        return pad;
     }
 }
 

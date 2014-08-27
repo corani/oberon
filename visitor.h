@@ -31,6 +31,7 @@ public:
     virtual void visitStrLiteral        (StrLiteralAST      *node, Context *ctx) = 0;
     virtual void visitCharLiteral       (CharLiteralAST     *node, Context *ctx) = 0;
     virtual void visitNilLiteral        (NilLiteralAST      *node, Context *ctx) = 0;
+    virtual void visitSetLiteral        (SetLiteralAST      *node, Context *ctx) = 0;
     virtual void visitIdentDef          (IdentDefAST        *node, Context *ctx) = 0;
     virtual void visitDesignator        (DesignatorAST      *node, Context *ctx) = 0;
     virtual void visitUnExpr            (UnExprAST          *node, Context *ctx) = 0;

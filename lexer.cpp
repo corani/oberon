@@ -1,11 +1,12 @@
 #include <string>
+#include <iomanip>
 #include <map>
 #include "lexer.h"
 
 using namespace std;
 
 ostream &operator<<(ostream &out, Location loc) {
-    out << "(" << loc.line << ", " << loc.column << ")";
+    out << setfill('0') << setw(3) << (loc.line + 1) << ":" << setw(3) << (loc.column - 1) << setfill(' ');
     return out;
 }
 

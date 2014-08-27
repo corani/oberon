@@ -766,7 +766,10 @@ shared_ptr<ExprAST> Parser::parseUnaryExpr() {
     if (!op) {
         return nullptr;
     }
-    return make_shared<UnExprAST>(op->getText(), operand);
+    auto expr = make_shared<UnExprAST>(op->getText(), operand);
+    expr->start = op;
+    expr->end = peek();
+    return expr;
 }
 
 shared_ptr<ExprAST> Parser::parseBinOpRHS(shared_ptr<ExprAST> LHS, int exprPrec) {
@@ -794,7 +797,10 @@ shared_ptr<ExprAST> Parser::parseBinOpRHS(shared_ptr<ExprAST> LHS, int exprPrec)
             }
         }
 
+        auto start = LHS->start;
         LHS = make_shared<BinExprAST>(op->getText(), LHS, RHS);
+        LHS->start = start;
+        LHS->end = peek();
     }
     return nullptr;
 }
@@ -832,44 +838,74 @@ shared_ptr<ExprAST> Parser::parseFactor() {
         iden->end = peek();
         return iden;
     }
-    case Token::BOOLLITERAL:
+    case Token::BOOLLITERAL: {
         tok = pop(Token::BOOLLITERAL);
-        return make_shared<BoolLiteralAST>(tok->getBoolVal());
-    case Token::INTLITERAL:
+        auto lit = make_shared<BoolLiteralAST>(tok->getBoolVal());
+        lit->start = tok;
+        lit->end = tok;
+        return lit;
+    }
+    case Token::INTLITERAL: {
         tok = pop(Token::INTLITERAL);
-        return make_shared<IntLiteralAST>(tok->getIntVal());
-    case Token::FLOATLITERAL:
+        auto lit = make_shared<IntLiteralAST>(tok->getIntVal());
+        lit->start = tok;
+        lit->end = tok;
+        return lit;
+    }
+    case Token::FLOATLITERAL: {
         tok = pop(Token::FLOATLITERAL);
-        return make_shared<FloatLiteralAST>(tok->getFloatVal());
-    case Token::STRLITERAL:
+        auto lit = make_shared<FloatLiteralAST>(tok->getFloatVal());
+        lit->start = tok;
+        lit->end = tok;
+        return lit;
+    }
+    case Token::STRLITERAL: {
         tok = pop(Token::STRLITERAL);
-        return make_shared<StrLiteralAST>(tok->getText());
-    case Token::CHARLITERAL:
+        auto lit = make_shared<StrLiteralAST>(tok->getText());
+        lit->start = tok;
+        lit->end = tok;
+        return lit;
+    }
+    case Token::CHARLITERAL: {
         tok = pop(Token::CHARLITERAL);
-        return make_shared<CharLiteralAST>(tok->getCharVal());
-    case Token::NIL:
+        auto lit = make_shared<CharLiteralAST>(tok->getCharVal());
+        lit->start = tok;
+        lit->end = tok;
+        return lit;
+    }
+    case Token::NIL: {
         tok = pop(Token::NIL);
-        return make_shared<NilLiteralAST>();
-    case Token::LCURLY:
+        auto lit = make_shared<NilLiteralAST>();
+        lit->start = tok;
+        lit->end = tok;
+        return lit;
+    }
+    case Token::LCURLY: {
         // SET
-        pop(Token::LCURLY);
+        auto set = make_shared<SetLiteralAST>();
+        set->start = pop(Token::LCURLY);
         if (!peek(Token::RCURLY)) {
-            parseExpr();
+            shared_ptr<ExprAST> first = parseExpr();
+            shared_ptr<ExprAST> second = nullptr;
             if (peek(Token::RANGE)) {
                 pop(Token::RANGE);
-                parseExpr();
+                second = parseExpr();
             }
+            set->elements.push_back(make_pair(first, second));
             while (peek(Token::COMMA)) {
                 pop(Token::COMMA);
-                parseExpr();
+                first = parseExpr();
+                second = nullptr;
                 if (peek(Token::RANGE)) {
                     pop(Token::RANGE);
-                    parseExpr();
+                    second = parseExpr();
                 }
+                set->elements.push_back(make_pair(first, second));
             }
         }
-        pop(Token::RCURLY);
-        break;
+        set->end = pop(Token::RCURLY);
+        return set;
+    }
     case Token::LPAREN: {
         auto start = pop(Token::LPAREN);
         auto expr = parseExpr();
@@ -877,11 +913,15 @@ shared_ptr<ExprAST> Parser::parseFactor() {
         expr->end = pop(Token::RPAREN);
         return expr;
     }
-    case Token::TILDE:
+    case Token::TILDE: {
         // NOT
-        pop(Token::TILDE);
-        parseFactor();
-        break;
+        auto start = pop(Token::TILDE);
+        auto expr = parseFactor();
+        auto neg = make_shared<UnExprAST>("~", expr);
+        neg->start = start;
+        neg->end = peek();
+        return neg;
+    }
     default:
         break;
     }

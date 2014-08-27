@@ -54,6 +54,7 @@ public:
     virtual void visitStrLiteral        (StrLiteralAST      *node, Context *ctx);
     virtual void visitCharLiteral       (CharLiteralAST     *node, Context *ctx);
     virtual void visitNilLiteral        (NilLiteralAST      *node, Context *ctx);
+    virtual void visitSetLiteral        (SetLiteralAST      *node, Context *ctx);
     virtual void visitIdentDef          (IdentDefAST        *node, Context *ctx);
     virtual void visitDesignator        (DesignatorAST      *node, Context *ctx);
     virtual void visitUnExpr            (UnExprAST          *node, Context *ctx);
@@ -75,7 +76,8 @@ public:
     virtual void visitCallStatement     (CallStatementAST   *Node, Context *ctx);
     virtual void visitCallExpr          (CallExprAST        *Node, Context *ctx);
 private:
-    std::string pre(Context *ctx);
+    void loc(BaseAST *node, Context *ctx);
+    std::string pre(Context *ctx, bool needPad = true);
     void push(Context *ctx, std::string p);
     void pop(Context *ctx);
 private:

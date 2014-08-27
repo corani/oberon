@@ -79,6 +79,10 @@ void NilLiteralAST::visit(Visitor *visitor, Context *ctx) {
     visitor->visitNilLiteral(this, ctx);
 }
 
+void SetLiteralAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitSetLiteral(this, ctx);
+}
+
 void IdentDefAST::visit(Visitor *visitor, Context *ctx) {
     visitor->visitIdentDef(this, ctx);
 }
