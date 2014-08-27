@@ -125,20 +125,22 @@ void Printer::visitArrayType(ArrayTypeAST *node, Context *ctx) {
 }
 void Printer::visitRecordType(RecordTypeAST *node, Context *ctx) {
     out << pre(ctx) << "* RecordType" << endl;
+    push(ctx, "|  ");
     if (node->base) {
-        out << pre(ctx) << "|  +- Base:" << endl;
-        push(ctx, "|  |  ");
+        out << pre(ctx) << "+- Base:" << endl;
+        push(ctx, "|  ");
         node->base->visit(this, ctx);
         pop(ctx);
     }
-    out << pre(ctx) << "|  +- Fields:" << endl;
-    push(ctx, "|  |  ");
+    out << pre(ctx) << "+- Fields:" << endl;
+    push(ctx, "|  ");
     for (auto field : node->fields) {
         out << pre(ctx) << field.first->name << " = " << endl;
         push(ctx, "|  ");
         field.second->visit(this, ctx);
         pop(ctx);
     }
+    pop(ctx);
     pop(ctx);
 }
 void Printer::visitPointerType(PointerTypeAST *node, Context *ctx) {
@@ -149,6 +151,15 @@ void Printer::visitPointerType(PointerTypeAST *node, Context *ctx) {
 }
 void Printer::visitProcedureType(ProcedureTypeAST *node, Context *ctx) {
     out << pre(ctx) << "* ProcedureType" << endl;
+    push(ctx, "|  ");
+    out << pre(ctx) << "+- Returns: " << node->ret->name << endl;
+    out << pre(ctx) << "+- Params:" << endl;
+    push(ctx, "|  ");
+    for (auto param : node->params) {
+        param->visit(this, ctx);
+    }
+    pop(ctx);
+    pop(ctx);
 }
 void Printer::visitVarDecl(VarDeclAST *node, Context *ctx) {
     out << pre(ctx) << "* VarDecl[" << node->ident->name << "]" << endl;
@@ -157,7 +168,10 @@ void Printer::visitVarDecl(VarDeclAST *node, Context *ctx) {
     pop(ctx);
 }
 void Printer::visitConstDecl(ConstDeclAST *node, Context *ctx) {
-    out << pre(ctx) << "* ConstDecl" << endl;
+    out << pre(ctx) << "* ConstDecl[" << node->ident->name << "]" << endl;
+    push(ctx, "|  ");
+    node->expr->visit(this, ctx);
+    pop(ctx);
 }
 void Printer::visitReceiver(ReceiverAST *node, Context *ctx) {
     out << pre(ctx) << "* Receiver[" << node->name << ": " << node->type << "]" << endl;
@@ -184,10 +198,24 @@ void Printer::visitNilLiteral(NilLiteralAST *node, Context *ctx) {
     out << pre(ctx) << "NilLiteral" << endl;
 }
 void Printer::visitIdentDef(IdentDefAST *node, Context *ctx) {
-    out << pre(ctx) << "IdentDef[" << node->name << "]" << endl;
+    out << pre(ctx) << "IdentDef[" << node->name;
+    switch(node->export_) {
+        case Export::YES:
+            out << "*";
+            break;
+        case Export::RO:
+            out << "-";
+            break;
+        default:
+            break;
+    }
+    out << "]" << endl;
 }
 void Printer::visitDesignator(DesignatorAST *node, Context *ctx) {
     out << pre(ctx) << "Designator" << endl;
+    push(ctx, "|  ");
+    node->qid->visit(this, ctx);
+    pop(ctx);
 }
 void Printer::visitUnExpr(UnExprAST *node, Context *ctx) {
     out << pre(ctx) << "* UnExpr[" << node->op << "]" << endl;
@@ -205,7 +233,10 @@ void Printer::visitBinExpr(BinExprAST *node, Context *ctx) {
     pop(ctx);
 }
 void Printer::visitIdentifier(IdentifierAST *node, Context *ctx) {
-    out << pre(ctx) << "Identifier[" << node->des->qid->name << "]" << endl;
+    out << pre(ctx) << "Identifier:" << endl;
+    push(ctx, "|  ");
+    node->des->visit(this, ctx);
+    pop(ctx);
 }
 void Printer::visitQualIdent(QualIdentAST *node, Context *ctx) {
     out << pre(ctx) << "* QualIdent[" << node->module << "." << node->name << "]" << endl;
@@ -238,9 +269,48 @@ void Printer::visitIfStatement(IfStatementAST *node, Context *ctx) {
 }
 void Printer::visitCaseStatement(CaseStatementAST *node, Context *ctx) {
     out << pre(ctx) << "* CaseStatement" << endl;
+    push(ctx, "|  ");
+    out << pre(ctx) << "+- Condition:" << endl;
+    push(ctx, "|  ");
+    node->cond->visit(this, ctx);
+    for (auto clause : node->clauses) {
+        clause->visit(this, ctx);
+    }
+    pop(ctx);
+    if (!node->elseStmts.empty()) {
+        out << pre(ctx) << "+- Else:" << endl;
+        push(ctx, "|  ");
+        for (auto stmt : node->elseStmts) {
+            stmt->visit(this, ctx);
+        }
+        pop(ctx);
+    }
+    out << pre(ctx) << "+- Else:" << endl;
+    pop(ctx);
 }
 void Printer::visitCaseClause(CaseClauseAST *node, Context *ctx) {
-    out << pre(ctx) << "* CaseClause" << endl;
+    out << pre(ctx) << "+- CaseClause: " << endl;
+    push(ctx, "|  ");
+    out << pre(ctx) << "+- Ranges:" << endl;
+    push(ctx, "|  ");
+    for (auto range : node->when) {
+        out << pre(ctx) << "+- From:" << endl;
+        push(ctx, "|  ");
+        range.first->visit(this, ctx);
+        pop(ctx);
+        out << pre(ctx) << "+- To:" << endl;
+        push(ctx, "|  ");
+        range.second->visit(this, ctx);
+        pop(ctx);
+    }
+    pop(ctx);
+    out << pre(ctx) << "+- Statements:" << endl;
+    push(ctx, "|  ");
+    for (auto stmt: node->stmts) {
+        stmt->visit(this, ctx);
+    }
+    pop(ctx);
+    pop(ctx);
 }
 void Printer::visitWhileStatement(WhileStatementAST *node, Context *ctx) {
     out << pre(ctx) << "* WhileStatement" << endl;
@@ -314,27 +384,73 @@ void Printer::visitLoopStatement(LoopStatementAST *node, Context *ctx) {
 }
 void Printer::visitWithStatement(WithStatementAST *node, Context *ctx) {
     out << pre(ctx) << "* WithStatement" << endl;
+    push(ctx, "|  ");
+    if (!node->elseStmts.empty()) {
+        out << pre(ctx) << "+- Else:" << endl;
+        push(ctx, "|  ");
+        for (auto stmt : node->elseStmts) {
+            stmt->visit(this, ctx);
+        }
+        pop(ctx);
+    }
+    pop(ctx);
 }
 void Printer::visitWithClause(WithClauseAST *node, Context *ctx) {
-    out << pre(ctx) << "* WithClause" << endl;
+    out << pre(ctx) << "+- WithClause" << endl;
+    push(ctx, "|  ");
+    out << pre(ctx) << "+- Name:" << endl;
+    push(ctx, "|  ");
+    node->name->visit(this, ctx);
+    pop(ctx);
+    out << pre(ctx) << "+- Type:" << endl;
+    push(ctx, "|  ");
+    node->type->visit(this, ctx);
+    pop(ctx);
+    out << pre(ctx) << "+- Statements:" << endl;
+    push(ctx, "|  ");
+    for (auto stmt: node->stmts) {
+        stmt->visit(this, ctx);
+    }
+    pop(ctx);
+    pop(ctx);
 }
 void Printer::visitExitStatement(ExitStatementAST *node, Context *ctx) {
     out << pre(ctx) << "* ExitStatement" << endl;
 }
 void Printer::visitReturnStatement(ReturnStatementAST *node, Context *ctx) {
     out << pre(ctx) << "* ReturnStatement" << endl;
+    if (node->expr) {
+        push(ctx, "|  ");
+        node->expr->visit(this, ctx);
+        pop(ctx);
+    }
 }
 void Printer::visitAssignStatement(AssignStatementAST *node, Context *ctx) {
-    out << pre(ctx) << "* AssignStatement[" << node->des->qid->name << "] = " << endl;
+    out << pre(ctx) << "* AssignStatement:" << endl;
     push(ctx, "|  ");
+    push(ctx, "L  ");
+    node->des->visit(this, ctx);
+    pop(ctx);
+    push(ctx, "R  ");
     node->expr->visit(this, ctx);
+    pop(ctx);
     pop(ctx);
 }
 void Printer::visitCallStatement(CallStatementAST *node, Context *ctx) {
-    out << pre(ctx) << "* CallStatement[" << node->des->qid->name << "]" << endl;
+    out << pre(ctx) << "* CallStatement" << endl;
     push(ctx, "|  ");
-    for (auto arg : node->args) {
-        arg->visit(this, ctx);
+    out << pre(ctx) << "+- Method:" << endl;
+    push(ctx, "|  ");
+    node->des->visit(this, ctx);
+    pop(ctx);
+    if (!node->args.empty()) {
+        out << pre(ctx) << "+- Arguments:" << endl;
+        int i = 0;
+        for (auto arg : node->args) {
+            push(ctx, to_string(i++) + "  ");
+            arg->visit(this, ctx);
+            pop(ctx);
+        }
     }
     pop(ctx);
 }
