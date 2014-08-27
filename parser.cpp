@@ -338,6 +338,10 @@ void Parser::parseProcDecl(vector<shared_ptr<DeclAST>> &decls) {
 
 void Parser::parseStatementSeq(vector<shared_ptr<StatementAST>> &stmts) {
     while (1) {
+        // To allow semicolon after the last statement
+        if (peek(Token::END)) {
+            break;
+        }
         auto keyword = peek({ Token::IDENTIFIER, Token::IF, Token::CASE, Token::WHILE, Token::REPEAT, Token::FOR, Token::LOOP, Token::WITH, Token::EXIT, Token::RETURN });
         if (!keyword) {
             keyword = pop();
@@ -686,7 +690,8 @@ shared_ptr<TypeAST> Parser::parseType() {
             }
             if (peek(Token::SEMICOLON)) {
                 pop(Token::SEMICOLON);
-            } else if (peek(Token::END)) {
+            }
+            if (peek(Token::END)) {
                 break;
             } else {
                 auto tok = pop();

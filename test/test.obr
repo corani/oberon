@@ -4,7 +4,7 @@ IMPORT System, S := Something;
 (* Hello (* World! *) *)
 VAR input : INTEGER;
 TYPE PointRec = RECORD
-                  x, y: INTEGER
+                  x, y: INTEGER;
                 END;
      Point3Rec= RECORD (PointRec)
                   z: INTEGER
@@ -28,7 +28,7 @@ BEGIN y := 0;
         x := x DIV 2;
         INC(y)
     END;
-    RETURN y
+    RETURN y;
 END log2;
 
 PROCEDURE WriteInt(x: INTEGER); (* 0 <= x < 10.0E5 *)
