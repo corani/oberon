@@ -339,7 +339,7 @@ void Parser::parseProcDecl(vector<shared_ptr<DeclAST>> &decls) {
 void Parser::parseStatementSeq(vector<shared_ptr<StatementAST>> &stmts) {
     while (1) {
         // To allow semicolon after the last statement
-        if (peek(Token::END)) {
+        if (peek({Token::END, Token::UNTIL, Token::ELSIF, Token::ELSE, Token::PIPE})) {
             break;
         }
         auto keyword = peek({ Token::IDENTIFIER, Token::IF, Token::CASE, Token::WHILE, Token::REPEAT, Token::FOR, Token::LOOP, Token::WITH, Token::EXIT, Token::RETURN });
@@ -522,7 +522,9 @@ void Parser::parseStatementSeq(vector<shared_ptr<StatementAST>> &stmts) {
         if (!peek(Token::SEMICOLON)) {
             break;
         }
-        pop(Token::SEMICOLON);
+        while (peek(Token::SEMICOLON)) {
+            pop(Token::SEMICOLON);
+        }
     }
 }
 
@@ -688,7 +690,7 @@ shared_ptr<TypeAST> Parser::parseType() {
             for (auto ident : idents) {
                 type->fields.push_back(make_pair(ident, ft));
             }
-            if (peek(Token::SEMICOLON)) {
+            while (peek(Token::SEMICOLON)) {
                 pop(Token::SEMICOLON);
             }
             if (peek(Token::END)) {
