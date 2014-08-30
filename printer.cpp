@@ -112,7 +112,7 @@ void Printer::visitExternDecl(ExternDeclAST *node, Context *ctx) {
 }
 void Printer::visitTypeDecl(TypeDeclAST *node, Context *ctx) {
     loc(node, ctx);
-    out << "* TypeDecl[" << node->ident->name << "] src: " << node->start->getLocation() << " - " << node->end->getLocation() << endl;
+    out << "* TypeDecl[" << node->ident->name << "]" << endl;
     push(ctx, "|  |  ");
     node->type->visit(this, ctx);
     pop(ctx);
@@ -288,7 +288,12 @@ void Printer::visitIdentifier(IdentifierAST *node, Context *ctx) {
 }
 void Printer::visitQualIdent(QualIdentAST *node, Context *ctx) {
     loc(node, ctx);
-    out << "* QualIdent[" << node->module << "." << node->name << "]" << endl;
+    out << "* QualIdent[" << node->name << "]" << endl;
+    if (node->module) {
+        push(ctx, "|  ");
+        node->module->visit(this, ctx);
+        pop(ctx);
+    }
 }
 void Printer::visitIfStatement(IfStatementAST *node, Context *ctx) {
     loc(node, ctx);

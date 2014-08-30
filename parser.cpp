@@ -191,7 +191,7 @@ void Parser::parseImport(vector<pair<string, string>> &imports) {
             pop(Token::COMMA);
         }
         imports.push_back(import);
-        newSymbol(import.first, nullptr);
+        newSymbol(import.first, make_shared<ModuleAST>(import.first));
     } while (!peek(Token::SEMICOLON));
     pop(Token::SEMICOLON);
 }
@@ -252,6 +252,7 @@ void Parser::parseVarDecl(vector<shared_ptr<DeclAST>> &decls) {
             var->start = start;
             var->end = end;
             var->type = type;
+            var->byRef = true;
             newSymbol(var->ident->name, var);
             decls.push_back(var);
         }
@@ -679,6 +680,7 @@ shared_ptr<TypeAST> Parser::parseType() {
             }
         }
         while (1) {
+            bool had_semicolon = false;
             vector<shared_ptr<IdentDefAST>> idents;
             idents.push_back(parseIdentDef());
             while (peek(Token::COMMA)) {
@@ -690,12 +692,15 @@ shared_ptr<TypeAST> Parser::parseType() {
             for (auto ident : idents) {
                 type->fields.push_back(make_pair(ident, ft));
             }
-            while (peek(Token::SEMICOLON)) {
-                pop(Token::SEMICOLON);
+            if (peek(Token::SEMICOLON)) {
+                while (peek(Token::SEMICOLON)) {
+                    pop(Token::SEMICOLON);
+                }
+                had_semicolon = true;
             }
             if (peek(Token::END)) {
                 break;
-            } else {
+            } else if (!had_semicolon) {
                 auto tok = pop();
                 throw ParserException("Expected ';' or 'END' after RECORD FieldList, got " + tok->getText(), tok->getLocation());
             }
@@ -990,18 +995,16 @@ shared_ptr<IdentDefAST> Parser::parseIdentDef() {
 shared_ptr<QualIdentAST> Parser::parseQualIdent() {
     auto qid = make_shared<QualIdentAST>();
     qid->start = peek();
-    shared_ptr<Token> module = nullptr;
     shared_ptr<Token> name = pop(Token::IDENTIFIER);
-    if (peek(Token::DOT)) {
+    qid->name = name->getText();
+    auto sym = findSymbol(qid->name);
+    qid->module = dynamic_pointer_cast<ModuleAST>(sym);
+    if (qid->module) {
         pop(Token::DOT);
-        module = name;
         name = pop(Token::IDENTIFIER);
+        qid->name = name->getText();
     }
     qid->end = name;
-    qid->name = name->getText();
-    if (module) {
-        qid->module = module->getText();
-    }
     return qid;
 }
 

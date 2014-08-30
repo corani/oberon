@@ -279,7 +279,8 @@ class QualIdentAST : public ExprAST {
 public:
     virtual void visit(Visitor *visitor, Context *ctx);
 public:
-    string module, name;
+    shared_ptr<ModuleAST> module;
+    string name;
 };
 
 class StatementAST : public BaseAST {
