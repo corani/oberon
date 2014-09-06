@@ -14,7 +14,7 @@ int main(int argc, char**argv) {
     }
 
     ifstream f(name, ifstream::in);
-    ifstream std("../std.mod", ifstream::in);
+    ifstream std("../std.m", ifstream::in);
     if (f.is_open() && std.is_open()) {
         Parser parser;
         parser.parseModule(make_shared<Lexer>(&std));
