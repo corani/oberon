@@ -57,6 +57,10 @@ public:
     virtual void visitSetLiteral        (SetLiteralAST      *node, Context *ctx);
     virtual void visitIdentDef          (IdentDefAST        *node, Context *ctx);
     virtual void visitDesignator        (DesignatorAST      *node, Context *ctx);
+    virtual void visitDesignatorIdentPart(DesignatorIdentPartAST *node, Context *ctx);
+    virtual void visitDesignatorArrayPart(DesignatorArrayPartAST *node, Context *ctx);
+    virtual void visitDesignatorDerefPart(DesignatorDerefPartAST *node, Context *ctx);
+    virtual void visitDesignatorCastPart (DesignatorCastPartAST  *node, Context *ctx);
     virtual void visitUnExpr            (UnExprAST          *node, Context *ctx);
     virtual void visitBinExpr           (BinExprAST         *node, Context *ctx);
     virtual void visitIdentifier        (IdentifierAST      *node, Context *ctx);

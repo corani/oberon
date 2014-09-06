@@ -91,6 +91,22 @@ void DesignatorAST::visit(Visitor *visitor, Context *ctx) {
     visitor->visitDesignator(this, ctx);
 }
 
+void DesignatorIdentPartAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitDesignatorIdentPart(this, ctx);
+}
+
+void DesignatorArrayPartAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitDesignatorArrayPart(this, ctx);
+}
+
+void DesignatorDerefPartAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitDesignatorDerefPart(this, ctx);
+}
+
+void DesignatorCastPartAST::visit(Visitor *visitor, Context *ctx) {
+    visitor->visitDesignatorCastPart(this, ctx);
+}
+
 void UnExprAST::visit(Visitor *visitor, Context *ctx) {
     visitor->visitUnExpr(this, ctx);
 }

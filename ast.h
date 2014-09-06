@@ -234,12 +234,46 @@ public:
     Export export_;
 };
 
+class DesignatorPartAST : public ExprAST {
+public:
+    virtual void visit(Visitor *visitor, Context *ctx) = 0;
+};
+
+class DesignatorIdentPartAST : public DesignatorPartAST {
+public:
+    DesignatorIdentPartAST(string ident) : ident(ident) {}
+    virtual void visit(Visitor *visitor, Context *ctx);
+public:
+    string ident;
+};
+
+class DesignatorArrayPartAST : public DesignatorPartAST {
+public:
+    virtual void visit(Visitor *visitor, Context *ctx);
+public:
+    vector<shared_ptr<ExprAST>> exprs;
+};
+
+class DesignatorDerefPartAST : public DesignatorPartAST {
+public:
+    virtual void visit(Visitor *visitor, Context *ctx);
+};
+
+class DesignatorCastPartAST : public DesignatorPartAST {
+public:
+    DesignatorCastPartAST(shared_ptr<QualIdentAST> qid) : qid(qid) {}
+    virtual void visit(Visitor *visitor, Context *ctx);
+public:
+    shared_ptr<QualIdentAST> qid;
+};
+
 class DesignatorAST : public ExprAST {
 public:
     DesignatorAST(shared_ptr<QualIdentAST> qid) : qid(qid) {}
     virtual void visit(Visitor *visitor, Context *ctx);
 public:
     shared_ptr<QualIdentAST> qid;
+    vector<shared_ptr<DesignatorPartAST>> parts;
 };
 
 class UnExprAST : public ExprAST {

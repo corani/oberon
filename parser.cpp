@@ -645,8 +645,20 @@ shared_ptr<TypeAST> Parser::parseType() {
     auto keyword = pop({ Token::IDENTIFIER, Token::ARRAY, Token::RECORD, Token::POINTER, Token::PROCEDURE });
     switch(keyword->getKind()) {
     case Token::IDENTIFIER: {
+        shared_ptr<TypeAST> type;
         push(keyword);
-        auto type = make_shared<BasicTypeAST>(parseQualIdent());
+        auto qid = parseQualIdent();
+        auto sym = findSymbol(qid->name);
+        if (sym) {
+            auto symType = dynamic_pointer_cast<TypeDeclAST>(sym);
+            if (symType) {
+                type = symType->type;
+            } else {
+                throw ParserException("Type expected: " + qid->name, keyword->getLocation());
+            }
+        } else {
+            type = make_shared<BasicTypeAST>(qid);
+        }
         type->start = keyword;
         type->end = keyword;
         return type;
@@ -674,7 +686,7 @@ shared_ptr<TypeAST> Parser::parseType() {
             type->base = parseQualIdent();
             pop(Token::RPAREN);
             auto base = findSymbol(type->base->name);
-            TypeDeclAST *decl = dynamic_cast<TypeDeclAST *>(base.get());
+            auto decl = dynamic_pointer_cast<TypeDeclAST>(base);
             if (decl) {
                 type->baseType = decl->type;
             }
@@ -938,40 +950,106 @@ shared_ptr<DesignatorAST> Parser::parseDesignator() {
     auto qid = parseQualIdent();
     auto des = make_shared<DesignatorAST>(qid);
     des->start = start;
-    while (peek({ Token::DOT, Token::LSQUARE, Token::CARET /*, Token::LPAREN*/ })) {
-        auto tok = pop({ Token::DOT, Token::LSQUARE, Token::CARET/*, Token::LPAREN*/ });
+    bool end = false;
+    while (peek({ Token::DOT, Token::LSQUARE, Token::CARET, Token::LPAREN }) && !end) {
+        auto tok = peek({ Token::DOT, Token::LSQUARE, Token::CARET, Token::LPAREN });
         switch(tok->getKind()) {
-        case Token::DOT:
+        case Token::DOT: {
             // QUALIFIER
-            pop(Token::IDENTIFIER);
+            // Ensure identifier is a record or pointer
+            auto sym = findSymbol(qid->name);
+            if (!sym) {
+                throw ParserException("Not a symbol: " + qid->name, tok->getLocation());
+            }
+            auto symDecl = dynamic_pointer_cast<VarDeclAST>(sym);
+            if (!symDecl) {
+                throw ParserException("Not a variable: " + qid->name, tok->getLocation());
+            }
+            shared_ptr<TypeAST> type = dynamic_pointer_cast<RecordTypeAST>(symDecl->type);
+            if (!type) {
+                type = dynamic_pointer_cast<PointerTypeAST>(symDecl->type);
+            }
+            if (!type) {
+                throw ParserException("Not a record or pointer: " + qid->name, tok->getLocation());
+            }
+            pop(Token::DOT);
+            auto ident = pop(Token::IDENTIFIER);
+            auto part = make_shared<DesignatorIdentPartAST>(ident->getText());
+            part->start = tok;
+            part->end = ident;
+            des->parts.push_back(part);
             break;
-        case Token::LSQUARE:
+        }
+        case Token::LSQUARE: {
             // ARRAY INDEX
-            // Ensure identifier is an array
-            parseExpr();
+            // Ensure identifier is an array and that expr type is integer
+            auto part = make_shared<DesignatorArrayPartAST>();
+            part->start = pop(Token::LSQUARE);
+            part->exprs.push_back(parseExpr());
             while (peek(Token::COMMA)) {
                 pop(Token::COMMA);
-                parseExpr();
+                part->exprs.push_back(parseExpr());
             }
-            pop(Token::RSQUARE);
+            part->end = pop(Token::RSQUARE);
+            des->parts.push_back(part);
             break;
-        case Token::CARET:
+        }
+        case Token::CARET: {
             // POINTER DEREF
+            // Ensure identifier is a pointer
+            auto sym = findSymbol(qid->name);
+            if (!sym) {
+                throw ParserException("Not a symbol: " + qid->name, tok->getLocation());
+            }
+            auto symDecl = dynamic_pointer_cast<VarDeclAST>(sym);
+            if (!symDecl) {
+                throw ParserException("Not a variable: " + qid->name, tok->getLocation());
+            }
+            auto type = dynamic_pointer_cast<PointerTypeAST>(symDecl->type);
+            if (!type) {
+                throw ParserException("Not a pointer: " + qid->name, tok->getLocation());
+            }
+            auto part = make_shared<DesignatorDerefPartAST>();
+            part->start = tok;
+            part->end = pop(Token::CARET);
+            des->parts.push_back(part);
             break;
-/*      case Token::LPAREN:
+        }
+        case Token::LPAREN: {
             // Type Guard v(T)
             // Ensure v is of type RECORD or POINTER and T is an extension of static type of v
-            pop(Token::IDENTIFIER);
-            if (peek(Token::DOT)) {
-                pop(Token::DOT);
-                pop(Token::IDENTIFIER);
+            // NOTE: If it's *not* a type guard, it *could* be a procedure call, terminate the
+            //       designator early, a higher level will check for that case.
+            auto sym = findSymbol(qid->name);
+            if (!sym) {
+                end = true;
+                break;
             }
-            pop(Token::RPAREN);
-            break;*/
+            auto symDecl = dynamic_pointer_cast<VarDeclAST>(sym);
+            if (!symDecl) {
+                end = true;
+                break;
+            }
+            shared_ptr<TypeAST> type = dynamic_pointer_cast<RecordTypeAST>(symDecl->type);
+            if (!type) {
+                type = dynamic_pointer_cast<PointerTypeAST>(symDecl->type);
+            }
+            if (!type) {
+                end = true;
+                break;
+            }
+            pop(Token::LPAREN);
+            auto part = make_shared<DesignatorCastPartAST>(parseQualIdent());
+            part->start = tok;
+            part->end = pop(Token::RPAREN);
+            des->parts.push_back(part);
+            break;
+        }
         default:
             break;
         }
     }
+    des->end = peek();
     return des;
 }
 

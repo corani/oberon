@@ -260,6 +260,40 @@ void Printer::visitDesignator(DesignatorAST *node, Context *ctx) {
     out << "Designator" << endl;
     push(ctx, "|  ");
     node->qid->visit(this, ctx);
+    if (!node->parts.empty()) {
+        push(ctx, "|  ");
+        for (auto part : node->parts) {
+            part->visit(this, ctx);
+        }
+        pop(ctx);
+    }
+    pop(ctx);
+}
+void Printer::visitDesignatorIdentPart(DesignatorIdentPartAST *node, Context *ctx) {
+    loc(node, ctx);
+    out << "DesignatorIdentPart(" << node->ident << ")" << endl;
+}
+void Printer::visitDesignatorArrayPart(DesignatorArrayPartAST *node, Context *ctx) {
+    loc(node, ctx);
+    out << "DesignatorArrayPart" << endl;
+    if (!node->exprs.empty()) {
+        int i = 0;
+        for (auto expr : node->exprs) {
+            push(ctx, to_string(i++) + "  ");
+            expr->visit(this, ctx);
+            pop(ctx);
+        }
+    }
+}
+void Printer::visitDesignatorDerefPart(DesignatorDerefPartAST *node, Context *ctx) {
+    loc(node, ctx);
+    out << "DesignatorDerefPart" << endl;
+}
+void Printer::visitDesignatorCastPart(DesignatorCastPartAST *node, Context *ctx) {
+    loc(node, ctx);
+    out << "DesignatorCastPart" << endl;
+    push(ctx, "|  ");
+    node->qid->visit(this, ctx);
     pop(ctx);
 }
 void Printer::visitUnExpr(UnExprAST *node, Context *ctx) {
