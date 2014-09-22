@@ -1,14 +1,14 @@
 #include <iostream>
 #include <fstream>
 #include "../parser.h"
-#include "../printer.h"
+#include "../generator.h"
 
 using namespace std;
 
 int main(int argc, char**argv) {
-    Printer p(cout);
+    Generator gen("a.out");
 
-    string name = "test.obr";
+    string name = "test_compiler.m";
     if (argc > 1) {
         name = argv[1];
     }
@@ -19,8 +19,8 @@ int main(int argc, char**argv) {
         Parser parser;
         parser.parseModule(make_shared<Lexer>(&std));
         auto module = parser.parseModule(make_shared<Lexer>(&f));
-        p.print(module);
-
+        GeneratorContext *ctx = gen.generate(module);
+        ctx->toBitFile("a.bc");
         f.close();
     }
     return 0;

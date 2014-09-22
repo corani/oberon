@@ -4,5 +4,10 @@
 *.swp
 test/test_lexer
 test/test_parser
-test/core
+test/test_compiler
+test/core*
 obr
+.project
+.cproject
+.idea
+.settings

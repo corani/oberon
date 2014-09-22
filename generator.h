@@ -1,41 +1,36 @@
 #pragma once
+#include "llvm/Bitcode/ReaderWriter.h"
+#include "llvm/ExecutionEngine/ExecutionEngine.h"
+#include "llvm/ExecutionEngine/JIT.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/PassManager.h"
+#include "llvm/Support/raw_os_ostream.h"
 
-#include <stack>
-#include <vector>
 #include <memory>
+#include <string>
 #include "visitor.h"
 #include "ast.h"
 
-class PrinterContext : public Context {
+class GeneratorContext : public Context {
 public:
-    void push(std::string p) {
-        stack.push(pre);
-        pre = pre + p;
-    }
-    void pop() {
-        pre = stack.top();
-        stack.pop();
-    }
-    std::string header() {
-        return pre;
-    }
+    GeneratorContext();
+    void newModule(std::string name);
+    void toBitFile(std::string name);
 private:
-    std::string pre;
-    std::stack<std::string> stack;
+    llvm::IRBuilder<> Builder;
+    llvm::Module *mod;
+    llvm::ExecutionEngine *executionEngine;
+    llvm::FunctionPassManager *fpm;
 };
 
-class Printer : public Visitor {
+class Generator : public Visitor {
 public:
-    Printer(ostream &out) : out(out) {
-        ctx = new PrinterContext();
-    }
-    virtual ~Printer() {
-        delete ctx;
-    }
-    void print(shared_ptr<ModuleAST> module) {
-        module->visit(this, ctx);
-    }
+    Generator(const std::string name) : name(name) {};
 
+    GeneratorContext * generate(shared_ptr<ModuleAST> module);
+public:
     virtual void visitModule            (ModuleAST          *node, Context *ctx);
     virtual void visitProcDecl          (ProcDeclAST        *node, Context *ctx);
     virtual void visitForwardDecl       (ForwardDeclAST     *node, Context *ctx);
@@ -82,11 +77,7 @@ public:
     virtual void visitCallStatement     (CallStatementAST   *Node, Context *ctx);
     virtual void visitCallExpr          (CallExprAST        *Node, Context *ctx);
 private:
-    void loc(BaseAST *node, Context *ctx);
-    std::string pre(Context *ctx, bool needPad = true);
-    void push(Context *ctx, std::string p);
-    void pop(Context *ctx);
+    GeneratorContext *castContext(Context *ctx) { return static_cast<GeneratorContext *>(ctx); }
 private:
-    std::ostream &out;
-    PrinterContext *ctx;
+    std::string name;
 };

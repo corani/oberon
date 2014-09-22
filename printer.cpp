@@ -573,7 +573,7 @@ string Printer::pre(Context *ctx, bool needPad) {
     pad += " -> ";
     PrinterContext *pc = dynamic_cast<PrinterContext*>(ctx);
     if (pc) {
-        return pad + pc->pre;
+        return pad + pc->header();
     } else {
         return pad;
     }

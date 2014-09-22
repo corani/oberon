@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 extern "C" {
     // FUNTIONS
 
@@ -22,5 +24,7 @@ extern "C" {
     }
 
     // PROCEDURES
-
+    void _PUTC(char c) {
+        printf("%c", c);
+    }
 }

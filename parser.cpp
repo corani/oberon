@@ -1,6 +1,6 @@
 #include <vector>
+#include <memory>
 #include <algorithm>
-#include <utility>
 #include "parser.h"
 
 using namespace std;
@@ -93,13 +93,15 @@ void Parser::leaveScope() {
 }
 
 void Parser::newSymbol(string name, shared_ptr<DeclAST> ast) {
-    symbols.at(scope).push_back(make_pair(name, ast));
+    if (scope >= 0) {
+        symbols.at((unsigned) scope).push_back(make_pair(name, ast));
+    }
 }
 
 shared_ptr<DeclAST> Parser::findSymbol(string name) {
     for (int i = scope; i > 0; i--) {
         auto sv = symbols[i];
-        for (auto p : sv) {
+        for (pair<string, shared_ptr<DeclAST>> p : sv) {
             if (p.first == name) {
                 return p.second;
             }
@@ -125,7 +127,8 @@ shared_ptr<ModuleAST> Parser::parseModule(shared_ptr<Lexer> _lexer) {
         parseImport(module->imports);
     }
 
-    while (auto keyword = peek({ Token::TYPE, Token::CONST, Token::VAR })) {
+    shared_ptr<Token> keyword;
+    while (keyword = peek({ Token::TYPE, Token::CONST, Token::VAR })) {
         switch (keyword->getKind()) {
         case Token::TYPE:
             parseTypeDecl(module->decls);
@@ -141,7 +144,7 @@ shared_ptr<ModuleAST> Parser::parseModule(shared_ptr<Lexer> _lexer) {
         }
     }
 
-    while (auto keyword = peek({ Token::PROCEDURE, Token::EXTERN, Token::SEMICOLON })) {
+    while (keyword = peek({ Token::PROCEDURE, Token::EXTERN, Token::SEMICOLON })) {
         switch(keyword->getKind()) {
         case Token::PROCEDURE:
             parseProcDecl(module->decls);
@@ -161,7 +164,7 @@ shared_ptr<ModuleAST> Parser::parseModule(shared_ptr<Lexer> _lexer) {
     }
 
     pop(Token::END);
-    // TODO: Warning if names don't match
+    // TODO Warning if names don't match
     pop(Token::IDENTIFIER);
     auto end = pop(Token::DOT);
 
@@ -300,7 +303,8 @@ void Parser::parseProcDecl(vector<shared_ptr<DeclAST>> &decls) {
         proc->ret = parseFormalParams(proc->params);
         pop(Token::SEMICOLON);
 
-        while (auto keyword = peek({ Token::TYPE, Token::CONST, Token::VAR })) {
+        shared_ptr<Token> keyword;
+        while (keyword = peek({ Token::TYPE, Token::CONST, Token::VAR })) {
             switch (keyword->getKind()) {
                 case Token::TYPE:
                     parseTypeDecl(proc->decls);
@@ -343,7 +347,11 @@ void Parser::parseStatementSeq(vector<shared_ptr<StatementAST>> &stmts) {
         if (peek({Token::END, Token::UNTIL, Token::ELSIF, Token::ELSE, Token::PIPE})) {
             break;
         }
-        auto keyword = peek({ Token::IDENTIFIER, Token::IF, Token::CASE, Token::WHILE, Token::REPEAT, Token::FOR, Token::LOOP, Token::WITH, Token::EXIT, Token::RETURN });
+        shared_ptr<Token> keyword = peek({
+            Token::IDENTIFIER, Token::IF, Token::CASE, Token::WHILE,
+            Token::REPEAT, Token::FOR, Token::LOOP, Token::WITH, Token::EXIT,
+            Token::RETURN
+        });
         if (!keyword) {
             keyword = pop();
             throw ParserException("Expected statement, got " + kind_to_string(keyword->getKind()), keyword->getLocation());
@@ -642,7 +650,8 @@ shared_ptr<QualIdentAST> Parser::parseFormalParams(vector<shared_ptr<VarDeclAST>
 }
 
 shared_ptr<TypeAST> Parser::parseType() {
-    auto keyword = pop({ Token::IDENTIFIER, Token::ARRAY, Token::RECORD, Token::POINTER, Token::PROCEDURE });
+    shared_ptr<Token> keyword = pop({
+        Token::IDENTIFIER, Token::ARRAY, Token::RECORD, Token::POINTER, Token::PROCEDURE });
     switch(keyword->getKind()) {
     case Token::IDENTIFIER: {
         shared_ptr<TypeAST> type;
@@ -738,7 +747,6 @@ shared_ptr<TypeAST> Parser::parseType() {
     default:
         return nullptr;
     }
-    return nullptr;
 }
 
 shared_ptr<ExprAST> Parser::parseConstExpr() {
@@ -819,12 +827,14 @@ shared_ptr<ExprAST> Parser::parseBinOpRHS(shared_ptr<ExprAST> LHS, int exprPrec)
         LHS->start = start;
         LHS->end = peek();
     }
-    return nullptr;
 }
 
 shared_ptr<ExprAST> Parser::parseFactor() {
-    auto tok = peek({ Token::IDENTIFIER, Token::BOOLLITERAL, Token::INTLITERAL, Token::FLOATLITERAL, Token::STRLITERAL, Token::CHARLITERAL, Token::NIL,
-                        Token::LCURLY, Token::LPAREN, Token::TILDE });
+    shared_ptr<Token> tok = peek({
+        Token::IDENTIFIER, Token::BOOLLITERAL, Token::INTLITERAL,
+        Token::FLOATLITERAL, Token::STRLITERAL, Token::CHARLITERAL, Token::NIL,
+        Token::LCURLY, Token::LPAREN, Token::TILDE
+    });
     if (!tok) {
         return nullptr;
     }
@@ -952,7 +962,7 @@ shared_ptr<DesignatorAST> Parser::parseDesignator() {
     des->start = start;
     bool end = false;
     while (peek({ Token::DOT, Token::LSQUARE, Token::CARET, Token::LPAREN }) && !end) {
-        auto tok = peek({ Token::DOT, Token::LSQUARE, Token::CARET, Token::LPAREN });
+        shared_ptr<Token> tok = peek({ Token::DOT, Token::LSQUARE, Token::CARET, Token::LPAREN });
         switch(tok->getKind()) {
         case Token::DOT: {
             // QUALIFIER

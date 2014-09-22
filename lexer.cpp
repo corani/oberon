@@ -81,7 +81,7 @@ Token::Token(Kind _kind, Location _loc, string _text) : kind(_kind), loc(_loc), 
     if (_kind == IDENTIFIER) {
         // uppercase each character in-place
         for (auto &c : _text) {
-            c = toupper(c);
+            c = (char) toupper(c);
         }
         for (auto &entry : str_to_tok) {
             if (entry.first == _text) {
@@ -112,7 +112,7 @@ void Lexer::take(void) {
     } else {
         loc.column++;
     }
-    lastChar = in->get();
+    lastChar = (char) in->get();
 }
 
 static bool isoper(char c) {
