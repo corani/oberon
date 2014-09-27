@@ -16,6 +16,7 @@
 class GeneratorContext : public Context {
 public:
     GeneratorContext();
+    virtual ~GeneratorContext();
     void newModule(std::string name);
     void toBitFile(std::string name);
 private:
@@ -27,9 +28,9 @@ private:
 
 class Generator : public Visitor {
 public:
-    Generator(const std::string name) : name(name) {};
+    Generator() {};
 
-    GeneratorContext * generate(shared_ptr<ModuleAST> module);
+    shared_ptr<GeneratorContext> generate(shared_ptr<ModuleAST> module);
 public:
     virtual void visitModule            (ModuleAST          *node, Context *ctx);
     virtual void visitProcDecl          (ProcDeclAST        *node, Context *ctx);
@@ -78,6 +79,4 @@ public:
     virtual void visitCallExpr          (CallExprAST        *Node, Context *ctx);
 private:
     GeneratorContext *castContext(Context *ctx) { return static_cast<GeneratorContext *>(ctx); }
-private:
-    std::string name;
 };

@@ -7,11 +7,21 @@
 using namespace std;
 using namespace llvm;
 
-GeneratorContext::GeneratorContext() : Builder(getGlobalContext()) {
+GeneratorContext::GeneratorContext()
+        : Builder(getGlobalContext()),
+          executionEngine(nullptr),
+          mod(nullptr),
+          fpm(nullptr) {
     InitializeNativeTarget();
 }
 
-void GeneratorContext::newModule(std::string name) {
+GeneratorContext::~GeneratorContext() {
+    delete executionEngine; executionEngine = nullptr;
+    delete mod; mod = nullptr;
+    delete fpm; fpm = nullptr;
+}
+
+void GeneratorContext::newModule(string name) {
     mod = new Module(name, getGlobalContext());
 
     string ErrStr;
@@ -33,7 +43,7 @@ void GeneratorContext::newModule(std::string name) {
     fpm->doInitialization();
 }
 
-void GeneratorContext::toBitFile(const std::string name) {
+void GeneratorContext::toBitFile(const string name) {
     ofstream fout(name, ofstream::out | ofstream::binary);
     if (fout.is_open()) {
         llvm::raw_os_ostream out(fout);
@@ -43,9 +53,9 @@ void GeneratorContext::toBitFile(const std::string name) {
     }
 }
 
-GeneratorContext *Generator::generate(shared_ptr<ModuleAST> module) {
-    GeneratorContext *ctx = new GeneratorContext();
-    visitModule(module.get(), ctx);
+shared_ptr<GeneratorContext> Generator::generate(shared_ptr<ModuleAST> module) {
+    auto ctx = make_shared<GeneratorContext>();
+    visitModule(module.get(), ctx.get());
     return ctx;
 }
 

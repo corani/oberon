@@ -6,22 +6,27 @@
 using namespace std;
 
 int main(int argc, char**argv) {
-    Generator gen("a.out");
+    Generator gen;
 
-    string name = "test_compiler.m";
+    string src_n = "test_compiler.m";
+    string out_n = "a.bc";
     if (argc > 1) {
-        name = argv[1];
+        src_n = argv[1];
+    }
+    if (argc > 2) {
+        out_n = argv[2];
     }
 
-    ifstream f(name, ifstream::in);
+    ifstream src(src_n, ifstream::in);
     ifstream std("../std.m", ifstream::in);
-    if (f.is_open() && std.is_open()) {
+    if (src.is_open() && std.is_open()) {
         Parser parser;
-        parser.parseModule(make_shared<Lexer>(&std));
-        auto module = parser.parseModule(make_shared<Lexer>(&f));
-        GeneratorContext *ctx = gen.generate(module);
-        ctx->toBitFile("a.bc");
-        f.close();
+        // parse stdlib
+        auto std_mod = parser.parseModule(make_shared<Lexer>(&std));
+        // parse source file
+        auto src_mod = parser.parseModule(make_shared<Lexer>(&src));
+        auto ctx = gen.generate(src_mod);
+        ctx->toBitFile(out_n);
     }
     return 0;
 }
