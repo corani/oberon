@@ -74,4 +74,38 @@ private:
     std::map<string, int> precedence;
     vector<vector<pair<string, shared_ptr<DeclAST>>>> symbols;
     int scope = -1;
+
+    shared_ptr<TypeAST> parseSimpleType(shared_ptr<Token> start);
+
+    shared_ptr<TypeAST> parseArrayType(shared_ptr<Token> start);
+
+    shared_ptr<TypeAST> parseRecordType(shared_ptr<Token> start);
+
+    shared_ptr<TypeAST> parsePointerType(shared_ptr<Token> start);
+
+    shared_ptr<TypeAST> parseProcedureType(shared_ptr<Token> start);
+
+    shared_ptr<ReturnStatementAST> parseReturnStatement();
+
+    shared_ptr<ExitStatementAST> parseExitStatement();
+
+    shared_ptr<WithStatementAST> parseWithStatement();
+
+    shared_ptr<LoopStatementAST> parseLoopStatement();
+
+    shared_ptr<ForStatementAST> parseForStatement();
+
+    shared_ptr<RepeatStatementAST> parseRepeatStatement();
+
+    shared_ptr<WhileStatementAST> parseWhileStatement();
+
+    shared_ptr<CaseStatementAST> parseCaseStatement();
+
+    shared_ptr<IfStatementAST> parseIfStatement();
+
+    shared_ptr<CallStatementAST> parseNakedCallStatement(shared_ptr<DesignatorAST> des);
+
+    shared_ptr<CallStatementAST> parseCallStatement(shared_ptr<DesignatorAST> des);
+
+    shared_ptr<AssignStatementAST> parseAssignmentStatement(shared_ptr<DesignatorAST> des);
 };
