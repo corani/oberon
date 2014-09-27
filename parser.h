@@ -34,21 +34,29 @@ private:
     int scope = -1;
 };
 
+class Tokenizer {
+public:
+    Tokenizer(shared_ptr<Lexer> _lexer);
+
+    void push(shared_ptr<Token> tok);
+
+    shared_ptr<Token> pop();
+    shared_ptr<Token> popAny(std::vector<Token::Kind> kinds);
+    shared_ptr<Token> pop(Token::Kind kind);
+
+    shared_ptr<Token> peek();
+    shared_ptr<Token> peekAny(std::vector<Token::Kind> kinds);
+    shared_ptr<Token> peek(Token::Kind kind);
+private:
+    shared_ptr<Lexer> lexer;
+    shared_ptr<Token> currentToken;
+    std::stack<shared_ptr<Token>> tokens;
+};
 class Parser {
 public:
     Parser();
     shared_ptr<ModuleAST> parseModule(shared_ptr<Lexer> lexer);
 private:
-    void push(shared_ptr<Token> tok);
-
-    shared_ptr<Token> pop();
-    shared_ptr<Token> pop(Token::Kind kind);
-    shared_ptr<Token> pop(std::vector<Token::Kind> kinds);
-
-    shared_ptr<Token> peek();
-    shared_ptr<Token> peek(Token::Kind kind);
-    shared_ptr<Token> peek(std::vector<Token::Kind> kinds);
-
     void parseImport(vector<pair<string, string>> &imports);
 
     void parseTypeDecl   (vector<shared_ptr<DeclAST>> &decls);
@@ -109,9 +117,7 @@ private:
     int getPrecedence(shared_ptr<Token> op);
 
 private:
-    shared_ptr<Lexer> lexer;
-    shared_ptr<Token> currentToken;
-    std::stack<shared_ptr<Token>> tokens;
+    shared_ptr<Tokenizer> tok;
     std::map<string, int> precedence;
     SymbolTable symbolTable;
 };
